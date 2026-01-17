@@ -18,6 +18,7 @@ export function seedUsers(): User[] {
     email: "admin1@pm.com",
     role: "ADMIN",
     avatarColor: getAvatarColor(0),
+    isActive: true,
   });
   
   users.push({
@@ -26,6 +27,7 @@ export function seedUsers(): User[] {
     email: "admin2@pm.com",
     role: "ADMIN",
     avatarColor: getAvatarColor(1),
+    isActive: true,
   });
   
   const userNames = [
@@ -43,6 +45,7 @@ export function seedUsers(): User[] {
       email: `user${index + 1}@pm.com`,
       role: "USER",
       avatarColor: getAvatarColor(index + 2),
+      isActive: true,
     });
   });
   
@@ -109,8 +112,11 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
     { title: "Error handling improvements", description: "Implement global error boundary with user-friendly messages", status: "REVIEW", priority: "HIGH", type: "FEATURE", storyPoints: 5 },
   ];
   
+  let orderCounter: Record<string, Record<string, number>> = {};
+  
   projects.forEach((project, projectIndex) => {
     const projectMembers = users.filter(u => project.memberIds.includes(u.id));
+    orderCounter[project.id] = { TODO: 0, IN_PROGRESS: 0, REVIEW: 0, DONE: 0 };
     
     taskTemplates.forEach((template, taskIndex) => {
       const assignee = projectMembers[taskIndex % projectMembers.length];
@@ -118,6 +124,8 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
       const creator = projectMembers[0];
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) - 10);
+      
+      const order = orderCounter[project.id][template.status]++;
       
       tasks.push({
         id: `task-${projectIndex + 1}-${taskIndex + 1}`,
@@ -137,6 +145,7 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
         labels: project.labels.slice(0, Math.floor(Math.random() * 3) + 1).map(l => l.id),
         parentTaskId: null,
         subtaskIds: [],
+        order,
       });
     });
   });

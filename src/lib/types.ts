@@ -6,12 +6,19 @@ export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type TaskType = "BUG" | "FEATURE" | "STORY" | "TASK" | "EPIC" | "SUBTASK";
 
+export type AuditAction = 
+  | "CREATE_PROJECT" | "DELETE_PROJECT" | "UPDATE_PROJECT"
+  | "CREATE_TASK" | "UPDATE_TASK" | "DELETE_TASK" | "CHANGE_STATUS" | "DRAG_DROP_TASK"
+  | "ROLE_CHANGE" | "ADD_USER_TO_PROJECT" | "REMOVE_USER_FROM_PROJECT"
+  | "CREATE_USER" | "DEACTIVATE_USER" | "REACTIVATE_USER";
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
   avatarColor: string;
+  isActive: boolean;
 }
 
 export interface Label {
@@ -48,17 +55,19 @@ export interface Task {
   labels: string[];
   parentTaskId: string | null;
   subtaskIds: string[];
+  order: number;
 }
 
 export interface AuditLogEntry {
   id: string;
   userId: string;
-  action: string;
+  action: AuditAction;
   entity: "TASK" | "PROJECT" | "USER";
   entityId: string;
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   timestamp: Date;
+  description?: string;
 }
 
 export interface AuthState {
