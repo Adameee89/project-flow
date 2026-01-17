@@ -1,4 +1,4 @@
-import { User, Project, Task, AuditLogEntry } from "../types";
+import { User, Project, Task, AuditLogEntry, Label } from "../types";
 import { seedUsers, seedProjects, seedTasks, seedAuditLogs } from "./seed";
 
 class InMemoryDatabase {
@@ -18,7 +18,6 @@ class InMemoryDatabase {
     this.auditLogs = seedAuditLogs();
   }
 
-  // Users
   getUsers(): User[] {
     return [...this.users];
   }
@@ -31,7 +30,6 @@ class InMemoryDatabase {
     return this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
   }
 
-  // Projects
   getProjects(): Project[] {
     return [...this.projects];
   }
@@ -65,12 +63,10 @@ class InMemoryDatabase {
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) return false;
     this.projects.splice(index, 1);
-    // Also delete related tasks
     this.tasks = this.tasks.filter(t => t.projectId !== id);
     return true;
   }
 
-  // Tasks
   getTasks(): Task[] {
     return [...this.tasks];
   }
@@ -87,14 +83,27 @@ class InMemoryDatabase {
     return this.tasks.filter(t => t.assigneeId === userId);
   }
 
-  createTask(task: Omit<Task, "id" | "createdAt" | "updatedAt">): Task {
+  getSubtasks(parentTaskId: string): Task[] {
+    return this.tasks.filter(t => t.parentTaskId === parentTaskId);
+  }
+
+  createTask(task: Omit<Task, "id" | "createdAt" | "updatedAt" | "subtaskIds">): Task {
     const newTask: Task = {
       ...task,
       id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
       updatedAt: new Date(),
+      subtaskIds: [],
     };
     this.tasks.push(newTask);
+    
+    if (task.parentTaskId) {
+      const parent = this.tasks.find(t => t.id === task.parentTaskId);
+      if (parent) {
+        parent.subtaskIds.push(newTask.id);
+      }
+    }
+    
     return newTask;
   }
 
@@ -110,13 +119,29 @@ class InMemoryDatabase {
   }
 
   deleteTask(id: string): boolean {
+    const task = this.tasks.find(t => t.id === id);
+    if (!task) return false;
+    
+    // Remove from parent's subtaskIds
+    if (task.parentTaskId) {
+      const parent = this.tasks.find(t => t.id === task.parentTaskId);
+      if (parent) {
+        parent.subtaskIds = parent.subtaskIds.filter(sid => sid !== id);
+      }
+    }
+    
+    // Delete subtasks
+    task.subtaskIds.forEach(subtaskId => {
+      this.deleteTask(subtaskId);
+    });
+    
     const index = this.tasks.findIndex(t => t.id === id);
-    if (index === -1) return false;
-    this.tasks.splice(index, 1);
+    if (index !== -1) {
+      this.tasks.splice(index, 1);
+    }
     return true;
   }
 
-  // Audit Logs
   getAuditLogs(): AuditLogEntry[] {
     return [...this.auditLogs].sort((a, b) => 
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
