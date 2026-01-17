@@ -1,23 +1,17 @@
-import { User, Project, Task, AuditLogEntry, TaskStatus, TaskPriority } from "../types";
+import { User, Project, Task, AuditLogEntry, TaskStatus, TaskPriority, TaskType, DEFAULT_LABELS } from "../types";
 
 const AVATAR_COLORS = [
   "#3B82F6", "#EF4444", "#10B981", "#F59E0B", "#8B5CF6",
   "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#6366F1",
 ];
 
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15);
-}
-
 function getAvatarColor(index: number): string {
   return AVATAR_COLORS[index % AVATAR_COLORS.length];
 }
 
-// Seed 20 users: 2 admins, 18 users
 export function seedUsers(): User[] {
   const users: User[] = [];
   
-  // Admins
   users.push({
     id: "admin-1",
     name: "Sarah Chen",
@@ -34,7 +28,6 @@ export function seedUsers(): User[] {
     avatarColor: getAvatarColor(1),
   });
   
-  // Regular users
   const userNames = [
     "Alex Rivera", "Jordan Kim", "Casey Morgan", "Taylor Swift", 
     "Morgan Lee", "Jamie Parker", "Riley Cooper", "Avery Brooks",
@@ -68,6 +61,7 @@ export function seedProjects(users: User[]): Project[] {
       memberIds: [...adminIds, ...userIds.slice(0, 8)],
       createdAt: new Date("2024-01-15"),
       createdBy: "admin-1",
+      labels: DEFAULT_LABELS.slice(0, 5),
     },
     {
       id: "project-2",
@@ -76,6 +70,7 @@ export function seedProjects(users: User[]): Project[] {
       memberIds: [...adminIds, ...userIds.slice(4, 12)],
       createdAt: new Date("2024-02-01"),
       createdBy: "admin-1",
+      labels: DEFAULT_LABELS.slice(1, 6),
     },
     {
       id: "project-3",
@@ -84,6 +79,7 @@ export function seedProjects(users: User[]): Project[] {
       memberIds: [...adminIds, ...userIds.slice(8, 16)],
       createdAt: new Date("2024-02-10"),
       createdBy: "admin-2",
+      labels: DEFAULT_LABELS.slice(2, 7),
     },
     {
       id: "project-4",
@@ -92,6 +88,7 @@ export function seedProjects(users: User[]): Project[] {
       memberIds: [...adminIds, ...userIds.slice(12, 18)],
       createdAt: new Date("2024-03-01"),
       createdBy: "admin-2",
+      labels: DEFAULT_LABELS.slice(3, 8),
     },
   ];
 }
@@ -99,17 +96,17 @@ export function seedProjects(users: User[]): Project[] {
 export function seedTasks(projects: Project[], users: User[]): Task[] {
   const tasks: Task[] = [];
   
-  const taskTemplates: { title: string; description: string; status: TaskStatus; priority: TaskPriority }[] = [
-    { title: "Design homepage mockups", description: "Create Figma mockups for the new homepage design", status: "DONE", priority: "HIGH" },
-    { title: "Implement navigation component", description: "Build responsive navigation with mobile menu", status: "DONE", priority: "HIGH" },
-    { title: "Set up authentication", description: "Implement JWT-based authentication system", status: "IN_PROGRESS", priority: "CRITICAL" },
-    { title: "Create user dashboard", description: "Build the main dashboard view with widgets", status: "IN_PROGRESS", priority: "HIGH" },
-    { title: "API endpoint documentation", description: "Document all REST API endpoints", status: "REVIEW", priority: "MEDIUM" },
-    { title: "Unit tests for core modules", description: "Write comprehensive unit tests", status: "TODO", priority: "MEDIUM" },
-    { title: "Performance optimization", description: "Optimize bundle size and load times", status: "TODO", priority: "LOW" },
-    { title: "Accessibility audit", description: "Conduct WCAG 2.1 accessibility review", status: "TODO", priority: "MEDIUM" },
-    { title: "Database schema migration", description: "Migrate to new normalized schema", status: "IN_PROGRESS", priority: "CRITICAL" },
-    { title: "Error handling improvements", description: "Implement global error boundary", status: "REVIEW", priority: "HIGH" },
+  const taskTemplates: { title: string; description: string; status: TaskStatus; priority: TaskPriority; type: TaskType; storyPoints: number | null }[] = [
+    { title: "Design homepage mockups", description: "Create Figma mockups for the new homepage design with responsive layouts", status: "DONE", priority: "HIGH", type: "STORY", storyPoints: 8 },
+    { title: "Implement navigation component", description: "Build responsive navigation with mobile menu and dropdown support", status: "DONE", priority: "HIGH", type: "FEATURE", storyPoints: 5 },
+    { title: "Fix login button not clickable on mobile", description: "Users report the login button is unresponsive on iOS Safari", status: "IN_PROGRESS", priority: "CRITICAL", type: "BUG", storyPoints: 2 },
+    { title: "Create user dashboard", description: "Build the main dashboard view with widgets and real-time updates", status: "IN_PROGRESS", priority: "HIGH", type: "EPIC", storyPoints: 21 },
+    { title: "API endpoint documentation", description: "Document all REST API endpoints with examples and error codes", status: "REVIEW", priority: "MEDIUM", type: "TASK", storyPoints: 5 },
+    { title: "Unit tests for auth module", description: "Write comprehensive unit tests for authentication flows", status: "TODO", priority: "MEDIUM", type: "TASK", storyPoints: 8 },
+    { title: "Performance optimization", description: "Optimize bundle size, implement code splitting and lazy loading", status: "TODO", priority: "LOW", type: "FEATURE", storyPoints: 13 },
+    { title: "Accessibility audit", description: "Conduct WCAG 2.1 AA accessibility review and fix issues", status: "TODO", priority: "MEDIUM", type: "TASK", storyPoints: 8 },
+    { title: "Database connection timeout", description: "Production DB connections timing out under heavy load", status: "IN_PROGRESS", priority: "CRITICAL", type: "BUG", storyPoints: 3 },
+    { title: "Error handling improvements", description: "Implement global error boundary with user-friendly messages", status: "REVIEW", priority: "HIGH", type: "FEATURE", storyPoints: 5 },
   ];
   
   projects.forEach((project, projectIndex) => {
@@ -117,7 +114,10 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
     
     taskTemplates.forEach((template, taskIndex) => {
       const assignee = projectMembers[taskIndex % projectMembers.length];
+      const reporter = projectMembers[(taskIndex + 1) % projectMembers.length];
       const creator = projectMembers[0];
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) - 10);
       
       tasks.push({
         id: `task-${projectIndex + 1}-${taskIndex + 1}`,
@@ -125,11 +125,18 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
         description: template.description,
         status: template.status,
         priority: template.priority,
+        type: template.type,
         assigneeId: assignee?.id || null,
+        reporterId: reporter?.id || creator.id,
         projectId: project.id,
         createdBy: creator.id,
         createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
         updatedAt: new Date(),
+        dueDate: Math.random() > 0.3 ? dueDate : null,
+        storyPoints: template.storyPoints,
+        labels: project.labels.slice(0, Math.floor(Math.random() * 3) + 1).map(l => l.id),
+        parentTaskId: null,
+        subtaskIds: [],
       });
     });
   });

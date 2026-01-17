@@ -1,6 +1,9 @@
+import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useIsAdmin } from "@/stores/authStore";
+import { useThemeStore, applyTheme } from "@/stores/themeStore";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,8 +20,6 @@ import {
   Shield,
   LogOut,
   ChevronDown,
-  Users,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdmin = useIsAdmin();
   const location = useLocation();
   const navigate = useNavigate();
+  const { theme } = useThemeStore();
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   const handleLogout = () => {
     logout();
@@ -53,10 +59,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="flex h-14 items-center px-4 gap-4">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-semibold">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
               <LayoutDashboard className="h-4 w-4 text-primary-foreground" />
@@ -64,7 +68,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline text-foreground">ProjectFlow</span>
           </Link>
 
-          {/* Navigation */}
           <nav className="flex items-center gap-1 ml-4">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
@@ -89,8 +92,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            
             {isAdmin && (
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                 Admin
@@ -125,7 +129,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
         {children}
       </main>
