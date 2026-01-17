@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import { useAuthStore } from "@/stores/authStore";
 import { projectsAPI, tasksAPI } from "@/lib/api";
 import { db } from "@/lib/db/database";
@@ -11,6 +13,8 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { TaskTypeBadge, TaskTypeIcon } from "@/components/ui/TaskTypeBadge";
 import { LabelBadge } from "@/components/ui/LabelBadge";
+import { DroppableColumn } from "@/components/board/DroppableColumn";
+import { DraggableTaskCard } from "@/components/board/DraggableTaskCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowLeft, Trash2, GripVertical, CalendarIcon, Hash, Tag, User, Clock, AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 
@@ -127,6 +131,7 @@ export default function ProjectBoardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -137,6 +142,14 @@ export default function ProjectBoardPage() {
     storyPoints: null as number | null,
     labels: [] as string[],
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -221,6 +234,35 @@ export default function ProjectBoardPage() {
         ? prev.labels.filter((id) => id !== labelId)
         : [...prev.labels, labelId],
     }));
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = filteredTasks?.find((t) => t.id === event.active.id);
+    if (task) setActiveTask(task);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    
+    if (!over) return;
+    
+    const taskId = active.id as string;
+    const task = filteredTasks?.find((t) => t.id === taskId);
+    if (!task) return;
+
+    // Check if dropped over a column (status)
+    const newStatus = STATUS_ORDER.includes(over.id as TaskStatus) 
+      ? (over.id as TaskStatus)
+      : filteredTasks?.find((t) => t.id === over.id)?.status;
+    
+    if (newStatus && newStatus !== task.status) {
+      statusMutation.mutate({ taskId, status: newStatus });
+    }
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    // For visual feedback during drag
   };
 
   return (
@@ -375,11 +417,39 @@ export default function ProjectBoardPage() {
           </div>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
-          {STATUS_ORDER.map((status) => (
-            <StatusColumn key={status} status={status} tasks={tasksByStatus[status]} project={project} onTaskClick={setSelectedTask} />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOver={handleDragOver}
+        >
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
+            {STATUS_ORDER.map((status) => (
+              <DroppableColumn
+                key={status}
+                status={status}
+                tasks={tasksByStatus[status]}
+                project={project}
+                onTaskClick={setSelectedTask}
+              />
+            ))}
+          </div>
+          
+          <DragOverlay>
+            {activeTask && (
+              <Card className="p-3 shadow-lg border-l-4 opacity-90 rotate-3" style={{ borderLeftColor: activeTask.type === "BUG" ? "#ef4444" : activeTask.type === "EPIC" ? "#8b5cf6" : "transparent" }}>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <TaskTypeIcon type={activeTask.type} />
+                    <span className="text-xs text-muted-foreground font-mono">{activeTask.id.slice(-8).toUpperCase()}</span>
+                  </div>
+                  <p className="font-medium text-sm">{activeTask.title}</p>
+                </div>
+              </Card>
+            )}
+          </DragOverlay>
+        </DndContext>
 
         {/* Task Detail Dialog */}
         <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
