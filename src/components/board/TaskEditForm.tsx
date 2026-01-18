@@ -176,10 +176,10 @@ export function TaskEditForm({
               
               <div className="space-y-2">
                 <FormLabel className="text-muted-foreground text-xs uppercase">Assignee</FormLabel>
-                <Select value={task.assigneeId || ""} onValueChange={(v) => onUpdate({ assigneeId: v || null })}>
+                <Select value={task.assigneeId || "unassigned"} onValueChange={(v) => onUpdate({ assigneeId: v === "unassigned" ? null : v })}>
                   <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.id} value={m.id}>
                         <div className="flex items-center gap-2"><UserAvatar user={m} size="sm" />{m.name}</div>
@@ -213,10 +213,10 @@ export function TaskEditForm({
               
               <div className="space-y-2">
                 <FormLabel className="text-muted-foreground text-xs uppercase">Story Points</FormLabel>
-                <Select value={task.storyPoints?.toString() || ""} onValueChange={(v) => onUpdate({ storyPoints: v ? parseInt(v) : null })}>
+                <Select value={task.storyPoints?.toString() || "none"} onValueChange={(v) => onUpdate({ storyPoints: v === "none" ? null : parseInt(v) })}>
                   <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {STORY_POINTS.map((sp) => (
                       <SelectItem key={sp} value={sp.toString()}>{sp} points</SelectItem>
                     ))}
