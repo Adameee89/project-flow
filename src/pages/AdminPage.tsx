@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { usersAPI } from "@/lib/api";
 import { db } from "@/lib/db/database";
+import { useAuthStore } from "@/stores/authStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +12,15 @@ import { AuditLogViewer } from "@/components/admin/AuditLogViewer";
 import { Shield, Users, FileText, Activity, FolderKanban } from "lucide-react";
 
 export default function AdminPage() {
-  const allUsers = db.getUsers();
+  const { user: currentUser } = useAuthStore();
+
+  // Use React Query for proper reactivity
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersAPI.getAll(),
+    enabled: !!currentUser,
+  });
+
   const allProjects = db.getProjects();
   const allTasks = db.getTasks();
 

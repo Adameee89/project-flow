@@ -1,6 +1,15 @@
 import { User, Project, Task, AuditLogEntry, Label, AuditAction } from "../types";
 import { seedUsers, seedProjects, seedTasks, seedAuditLogs } from "./seed";
 
+const STORAGE_KEY = "agile-hive-db";
+
+interface StoredData {
+  users: User[];
+  projects: Project[];
+  tasks: Task[];
+  auditLogs: AuditLogEntry[];
+}
+
 class InMemoryDatabase {
   users: User[] = [];
   projects: Project[] = [];
@@ -8,14 +17,63 @@ class InMemoryDatabase {
   auditLogs: AuditLogEntry[] = [];
 
   constructor() {
-    this.reset();
+    this.loadFromStorage();
   }
 
-  reset() {
+  private loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const data: StoredData = JSON.parse(stored);
+        // Restore dates from JSON strings
+        this.users = data.users || [];
+        this.projects = (data.projects || []).map(p => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+        }));
+        this.tasks = (data.tasks || []).map(t => ({
+          ...t,
+          createdAt: new Date(t.createdAt),
+          updatedAt: new Date(t.updatedAt),
+          dueDate: t.dueDate ? new Date(t.dueDate) : null,
+        }));
+        this.auditLogs = (data.auditLogs || []).map(log => ({
+          ...log,
+          timestamp: new Date(log.timestamp),
+        }));
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to load from storage:", e);
+    }
+    // Fall back to seed data if nothing stored or error
+    this.resetToSeed();
+  }
+
+  private saveToStorage() {
+    try {
+      const data: StoredData = {
+        users: this.users,
+        projects: this.projects,
+        tasks: this.tasks,
+        auditLogs: this.auditLogs,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("Failed to save to storage:", e);
+    }
+  }
+
+  resetToSeed() {
     this.users = seedUsers();
     this.projects = seedProjects(this.users);
     this.tasks = seedTasks(this.projects, this.users);
     this.auditLogs = seedAuditLogs();
+    this.saveToStorage();
+  }
+
+  reset() {
+    this.resetToSeed();
   }
 
   // ==================== USER METHODS ====================
@@ -43,6 +101,7 @@ class InMemoryDatabase {
       isActive: true,
     };
     this.users.push(newUser);
+    this.saveToStorage();
     return newUser;
   }
 
@@ -50,6 +109,7 @@ class InMemoryDatabase {
     const index = this.users.findIndex(u => u.id === id);
     if (index === -1) return undefined;
     this.users[index] = { ...this.users[index], ...updates };
+    this.saveToStorage();
     return this.users[index];
   }
 
@@ -86,6 +146,7 @@ class InMemoryDatabase {
       createdAt: new Date(),
     };
     this.projects.push(newProject);
+    this.saveToStorage();
     return newProject;
   }
 
@@ -93,6 +154,7 @@ class InMemoryDatabase {
     const index = this.projects.findIndex(p => p.id === id);
     if (index === -1) return undefined;
     this.projects[index] = { ...this.projects[index], ...updates };
+    this.saveToStorage();
     return this.projects[index];
   }
 
@@ -101,6 +163,7 @@ class InMemoryDatabase {
     if (index === -1) return false;
     this.projects.splice(index, 1);
     this.tasks = this.tasks.filter(t => t.projectId !== id);
+    this.saveToStorage();
     return true;
   }
 
@@ -109,6 +172,7 @@ class InMemoryDatabase {
     if (!project) return undefined;
     if (project.memberIds.includes(userId)) return project;
     project.memberIds.push(userId);
+    this.saveToStorage();
     return project;
   }
 
@@ -116,6 +180,7 @@ class InMemoryDatabase {
     const project = this.getProjectById(projectId);
     if (!project) return undefined;
     project.memberIds = project.memberIds.filter(id => id !== userId);
+    this.saveToStorage();
     return project;
   }
 
@@ -168,6 +233,7 @@ class InMemoryDatabase {
       }
     }
     
+    this.saveToStorage();
     return newTask;
   }
 
@@ -179,6 +245,7 @@ class InMemoryDatabase {
       ...updates, 
       updatedAt: new Date() 
     };
+    this.saveToStorage();
     return this.tasks[index];
   }
 
@@ -197,7 +264,7 @@ class InMemoryDatabase {
       t.order = index;
     });
 
-    // Update the moved task
+    // Update the moved task (this also saves to storage)
     return this.updateTask(taskId, { status: newStatus as Task['status'], order: newOrder });
   }
 
@@ -222,6 +289,7 @@ class InMemoryDatabase {
     if (index !== -1) {
       this.tasks.splice(index, 1);
     }
+    this.saveToStorage();
     return true;
   }
 
@@ -236,6 +304,7 @@ class InMemoryDatabase {
         }
       }
     });
+    if (count > 0) this.saveToStorage();
     return count;
   }
 
@@ -254,6 +323,7 @@ class InMemoryDatabase {
       timestamp: new Date(),
     };
     this.auditLogs.push(newEntry);
+    this.saveToStorage();
     return newEntry;
   }
 }
