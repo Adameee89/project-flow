@@ -16,6 +16,7 @@ import { TaskTypeBadge, TaskTypeIcon } from "@/components/ui/TaskTypeBadge";
 import { LabelBadge } from "@/components/ui/LabelBadge";
 import { DroppableColumn } from "@/components/board/DroppableColumn";
 import { DraggableTaskCard } from "@/components/board/DraggableTaskCard";
+import { TaskEditForm } from "@/components/board/TaskEditForm";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -605,147 +606,16 @@ export default function ProjectBoardPage() {
         <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             {selectedTask && (
-              <>
-                <DialogHeader>
-                  <div className="flex items-center gap-2 mb-2">
-                    <TaskTypeBadge type={selectedTask.type} />
-                    <span className="text-xs text-muted-foreground font-mono">{selectedTask.id.slice(-8).toUpperCase()}</span>
-                  </div>
-                  <DialogTitle className="text-xl">{selectedTask.title}</DialogTitle>
-                </DialogHeader>
-                
-                <Tabs defaultValue="details" className="mt-4">
-                  <TabsList>
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="activity">Activity</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="details" className="space-y-6 mt-4">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Status</FormLabel>
-                          <Select value={selectedTask.status} onValueChange={(v) => statusMutation.mutate({ taskId: selectedTask.id, status: v as TaskStatus })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {STATUS_ORDER.map((s) => (
-                                <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Assignee</FormLabel>
-                          <Select value={selectedTask.assigneeId || ""} onValueChange={(v) => updateMutation.mutate({ taskId: selectedTask.id, updates: { assigneeId: v || null } })}>
-                            <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-                            <SelectContent>
-                              {members.map((m) => (
-                                <SelectItem key={m.id} value={m.id}>
-                                  <div className="flex items-center gap-2"><UserAvatar user={m} size="sm" />{m.name}</div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Reporter</FormLabel>
-                          <div className="flex items-center gap-2 p-2">
-                            <UserAvatar user={members.find(m => m.id === selectedTask.reporterId)} size="sm" />
-                            <span className="text-sm">{members.find(m => m.id === selectedTask.reporterId)?.name || "Unknown"}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Priority</FormLabel>
-                          <Select value={selectedTask.priority} onValueChange={(v) => updateMutation.mutate({ taskId: selectedTask.id, updates: { priority: v as TaskPriority } })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as TaskPriority[]).map((p) => (
-                                <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Story Points</FormLabel>
-                          <Select value={selectedTask.storyPoints?.toString() || ""} onValueChange={(v) => updateMutation.mutate({ taskId: selectedTask.id, updates: { storyPoints: v ? parseInt(v) : null } })}>
-                            <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                            <SelectContent>
-                              {STORY_POINTS.map((sp) => (
-                                <SelectItem key={sp} value={sp.toString()}>{sp} points</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <FormLabel className="text-muted-foreground text-xs uppercase">Due Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="outline" className="w-full justify-start">
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {selectedTask.dueDate ? format(new Date(selectedTask.dueDate), "PPP") : "No due date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                              <Calendar mode="single" selected={selectedTask.dueDate ? new Date(selectedTask.dueDate) : undefined} onSelect={(date) => updateMutation.mutate({ taskId: selectedTask.id, updates: { dueDate: date || null } })} />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <FormLabel className="text-muted-foreground text-xs uppercase">Description</FormLabel>
-                      <div className="p-3 rounded-md border min-h-[100px] text-sm">
-                        {selectedTask.description || <span className="text-muted-foreground">No description provided</span>}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <FormLabel className="text-muted-foreground text-xs uppercase">Labels</FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {projectLabels.filter((l: Label) => selectedTask.labels.includes(l.id)).map((label: Label) => (
-                          <LabelBadge key={label.id} label={label} size="md" />
-                        ))}
-                        {selectedTask.labels.length === 0 && <span className="text-sm text-muted-foreground">No labels</span>}
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="text-xs text-muted-foreground">
-                        Created {format(new Date(selectedTask.createdAt), "PPP")} · Updated {format(new Date(selectedTask.updatedAt), "PPP")}
-                      </div>
-                      <PermissionGuard permission="canDeleteTask">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm"><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this issue?</AlertDialogTitle>
-                              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMutation.mutate(selectedTask.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </PermissionGuard>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="activity" className="mt-4">
-                    <p className="text-muted-foreground text-center py-8">Activity history coming soon...</p>
-                  </TabsContent>
-                </Tabs>
-              </>
+              <TaskEditForm
+                task={selectedTask}
+                project={project}
+                members={members}
+                projectLabels={projectLabels}
+                onUpdate={(updates) => updateMutation.mutate({ taskId: selectedTask.id, updates })}
+                onStatusChange={(status) => statusMutation.mutate({ taskId: selectedTask.id, status })}
+                onDelete={() => deleteMutation.mutate(selectedTask.id)}
+                formatFileSize={formatFileSize}
+              />
             )}
           </DialogContent>
         </Dialog>

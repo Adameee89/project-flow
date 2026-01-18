@@ -81,6 +81,7 @@ export function seedProjects(users: User[]): Project[] {
       createdAt: new Date("2024-01-15"),
       createdBy: "admin-1",
       labels: DEFAULT_LABELS.slice(0, 5),
+      tags: ["DEVELOPMENT", "DESIGN"] as Project["tags"],
     },
     {
       id: "project-2",
@@ -90,6 +91,7 @@ export function seedProjects(users: User[]): Project[] {
       createdAt: new Date("2024-02-01"),
       createdBy: "admin-1",
       labels: DEFAULT_LABELS.slice(1, 6),
+      tags: ["DEVELOPMENT", "CLIENT"] as Project["tags"],
     },
     {
       id: "project-3",
@@ -99,6 +101,7 @@ export function seedProjects(users: User[]): Project[] {
       createdAt: new Date("2024-02-10"),
       createdBy: "admin-2",
       labels: DEFAULT_LABELS.slice(2, 7),
+      tags: ["DEVELOPMENT", "OPERATIONS"] as Project["tags"],
     },
     {
       id: "project-4",
@@ -108,6 +111,7 @@ export function seedProjects(users: User[]): Project[] {
       createdAt: new Date("2024-03-01"),
       createdBy: "admin-2",
       labels: DEFAULT_LABELS.slice(3, 8),
+      tags: ["OPERATIONS", "INTERNAL"] as Project["tags"],
     },
   ];
 }

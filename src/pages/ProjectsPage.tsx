@@ -22,9 +22,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FolderKanban, Users, ArrowRight, Trash2 } from "lucide-react";
-import { User, Project } from "@/lib/types";
+import { Plus, FolderKanban, Users, ArrowRight, Trash2, Pencil, Tag } from "lucide-react";
+import { User, Project, ProjectTag, PROJECT_TAG_LABELS, PROJECT_TAG_COLORS } from "@/lib/types";
 import { db } from "@/lib/db/database";
 import {
   AlertDialog,
@@ -38,16 +39,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const ALL_PROJECT_TAGS: ProjectTag[] = ["DEVELOPMENT", "MARKETING", "DESIGN", "RESEARCH", "OPERATIONS", "SUPPORT", "INTERNAL", "CLIENT"];
+
 export default function ProjectsPage() {
   const { user } = useAuthStore();
   const isAdmin = useIsAdmin();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
   const [newProject, setNewProject] = useState({
     name: "",
     description: "",
     memberIds: [] as string[],
+    tags: [] as ProjectTag[],
+  });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    tags: [] as ProjectTag[],
   });
 
   const { data: projects, isLoading } = useQuery({
@@ -59,12 +69,12 @@ export default function ProjectsPage() {
   const allUsers = db.getUsers();
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; description: string; memberIds: string[] }) =>
+    mutationFn: (data: { name: string; description: string; memberIds: string[]; tags: ProjectTag[] }) =>
       projectsAPI.create(user!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setIsCreateOpen(false);
-      setNewProject({ name: "", description: "", memberIds: [] });
+      setNewProject({ name: "", description: "", memberIds: [], tags: [] });
       toast({
         title: "Project created",
         description: "Your new project has been created successfully.",
@@ -74,6 +84,26 @@ export default function ProjectsPage() {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ projectId, updates }: { projectId: string; updates: { name?: string; description?: string; tags?: ProjectTag[] } }) =>
+      projectsAPI.update(projectId, user!.id, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      setEditProject(null);
+      toast({
+        title: "Project updated",
+        description: "Project has been updated successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update project",
         variant: "destructive",
       });
     },
@@ -99,10 +129,29 @@ export default function ProjectsPage() {
 
   const handleCreateProject = () => {
     if (!newProject.name.trim()) return;
-    
-    // Always include current user
     const memberIds = [...new Set([user!.id, ...newProject.memberIds])];
     createMutation.mutate({ ...newProject, memberIds });
+  };
+
+  const handleUpdateProject = () => {
+    if (!editProject || !editForm.name.trim()) return;
+    updateMutation.mutate({
+      projectId: editProject.id,
+      updates: {
+        name: editForm.name,
+        description: editForm.description,
+        tags: editForm.tags,
+      },
+    });
+  };
+
+  const openEditDialog = (project: Project) => {
+    setEditProject(project);
+    setEditForm({
+      name: project.name,
+      description: project.description,
+      tags: project.tags || [],
+    });
   };
 
   const toggleMember = (userId: string) => {
@@ -111,6 +160,24 @@ export default function ProjectsPage() {
       memberIds: prev.memberIds.includes(userId)
         ? prev.memberIds.filter((id) => id !== userId)
         : [...prev.memberIds, userId],
+    }));
+  };
+
+  const toggleNewTag = (tag: ProjectTag) => {
+    setNewProject((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter((t) => t !== tag)
+        : [...prev.tags, tag],
+    }));
+  };
+
+  const toggleEditTag = (tag: ProjectTag) => {
+    setEditForm((prev) => ({
+      ...prev,
+      tags: prev.tags.includes(tag)
+        ? prev.tags.filter((t) => t !== tag)
+        : [...prev.tags, tag],
     }));
   };
 
@@ -174,6 +241,26 @@ export default function ProjectsPage() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <Label>Project Tags</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {ALL_PROJECT_TAGS.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant={newProject.tags.includes(tag) ? "default" : "outline"}
+                          className="cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: newProject.tags.includes(tag) ? PROJECT_TAG_COLORS[tag] : "transparent",
+                            borderColor: PROJECT_TAG_COLORS[tag],
+                            color: newProject.tags.includes(tag) ? "white" : PROJECT_TAG_COLORS[tag],
+                          }}
+                          onClick={() => toggleNewTag(tag)}
+                        >
+                          {PROJECT_TAG_LABELS[tag]}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Team Members</Label>
                     <div className="border rounded-md max-h-48 overflow-y-auto">
                       {allUsers.map((u) => (
@@ -218,6 +305,71 @@ export default function ProjectsPage() {
           </PermissionGuard>
         </div>
 
+        {/* Edit Project Dialog */}
+        <Dialog open={!!editProject} onOpenChange={() => setEditProject(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+              <DialogDescription>
+                Update project details and tags.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Project Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Project Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_PROJECT_TAGS.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant={editForm.tags.includes(tag) ? "default" : "outline"}
+                      className="cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: editForm.tags.includes(tag) ? PROJECT_TAG_COLORS[tag] : "transparent",
+                        borderColor: PROJECT_TAG_COLORS[tag],
+                        color: editForm.tags.includes(tag) ? "white" : PROJECT_TAG_COLORS[tag],
+                      }}
+                      onClick={() => toggleEditTag(tag)}
+                    >
+                      {PROJECT_TAG_LABELS[tag]}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditProject(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateProject}
+                disabled={!editForm.name.trim() || updateMutation.isPending}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Projects Grid */}
         {isLoading ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -242,6 +394,7 @@ export default function ProjectsPage() {
             {projects?.map((project) => {
               const members = allUsers.filter((u) => project.memberIds.includes(u.id));
               const taskCount = db.getTasksByProjectId(project.id).length;
+              const projectTags = project.tags || [];
               
               return (
                 <Card key={project.id} className="shadow-card hover:shadow-card-hover transition-shadow group">
@@ -252,38 +405,67 @@ export default function ProjectsPage() {
                         <CardDescription className="line-clamp-2 mt-1">
                           {project.description}
                         </CardDescription>
-                      </div>
-                      <PermissionGuard permission="canDeleteProject">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Project?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete "{project.name}" and all its tasks.
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(project.id)}
-                                className="bg-destructive hover:bg-destructive/90"
+                        {projectTags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {projectTags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="outline"
+                                className="text-xs"
+                                style={{
+                                  borderColor: PROJECT_TAG_COLORS[tag],
+                                  color: PROJECT_TAG_COLORS[tag],
+                                }}
                               >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </PermissionGuard>
+                                {PROJECT_TAG_LABELS[tag]}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <PermissionGuard permission="canCreateProject">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                            onClick={() => openEditDialog(project)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </PermissionGuard>
+                        <PermissionGuard permission="canDeleteProject">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete "{project.name}" and all its tasks.
+                                  This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(project.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </PermissionGuard>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>

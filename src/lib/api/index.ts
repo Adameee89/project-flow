@@ -204,15 +204,30 @@ export const projectsAPI = {
     return project;
   },
   
-  async create(userId: string, data: { name: string; description: string; memberIds: string[] }): Promise<Project> {
+  async create(userId: string, data: { name: string; description: string; memberIds: string[]; tags?: string[] }): Promise<Project> {
     await delay();
     const user = db.getUserById(userId);
     if (!user) throw new APIError("User not found", 404);
     const permissions = getPermissions(user.role);
     if (!permissions.canCreateProject) throw new APIError("Only admins can create projects", 403);
-    const project = db.createProject({ ...data, createdBy: userId, labels: [] });
+    const project = db.createProject({ ...data, createdBy: userId, labels: [], tags: (data.tags || []) as any });
     db.addAuditLog({ userId, action: "CREATE_PROJECT", entity: "PROJECT", entityId: project.id, before: null, after: { name: project.name } });
     return project;
+  },
+  
+  async update(projectId: string, userId: string, updates: { name?: string; description?: string; tags?: string[] }): Promise<Project> {
+    await delay();
+    const user = db.getUserById(userId);
+    if (!user) throw new APIError("User not found", 404);
+    const permissions = getPermissions(user.role);
+    if (!permissions.canCreateProject) throw new APIError("Only admins can edit projects", 403);
+    const project = db.getProjectById(projectId);
+    if (!project) throw new APIError("Project not found", 404);
+    const before = { name: project.name, description: project.description };
+    const updated = db.updateProject(projectId, updates as any);
+    if (!updated) throw new APIError("Failed to update project", 500);
+    db.addAuditLog({ userId, action: "UPDATE_PROJECT", entity: "PROJECT", entityId: projectId, before, after: { name: updated.name, description: updated.description } });
+    return updated;
   },
   
   async delete(projectId: string, userId: string): Promise<void> {
@@ -364,7 +379,7 @@ export const tasksAPI = {
     return task;
   },
   
-  async update(taskId: string, userId: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "assigneeId" | "dueDate" | "storyPoints" | "labels" | "type">>): Promise<Task> {
+  async update(taskId: string, userId: string, updates: Partial<Pick<Task, "title" | "description" | "priority" | "assigneeId" | "dueDate" | "storyPoints" | "labels" | "type" | "attachments">>): Promise<Task> {
     await delay();
     const user = db.getUserById(userId);
     if (!user) throw new APIError("User not found", 404);
