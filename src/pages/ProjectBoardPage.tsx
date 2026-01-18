@@ -7,7 +7,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { useAuthStore } from "@/stores/authStore";
 import { projectsAPI, tasksAPI } from "@/lib/api";
 import { db } from "@/lib/db/database";
-import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label } from "@/lib/types";
+import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, PRIORITY_ORDER } from "@/lib/types";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -31,7 +31,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ArrowLeft, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CalendarIcon, Paperclip, X, FileText, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 
@@ -132,6 +132,9 @@ export default function ProjectBoardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>("all");
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [filterLabel, setFilterLabel] = useState<string>("all");
+  const [filterDue, setFilterDue] = useState<string>("all");
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
@@ -142,6 +145,7 @@ export default function ProjectBoardPage() {
     dueDate: null as Date | null,
     storyPoints: null as number | null,
     labels: [] as string[],
+    attachments: [] as Attachment[],
   });
 
   const sensors = useSensors(
@@ -177,7 +181,7 @@ export default function ProjectBoardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
       setIsCreateOpen(false);
-      setNewTask({ title: "", description: "", priority: "MEDIUM", type: "TASK", assigneeId: "", dueDate: null, storyPoints: null, labels: [] });
+      setNewTask({ title: "", description: "", priority: "MEDIUM", type: "TASK", assigneeId: "", dueDate: null, storyPoints: null, labels: [], attachments: [] });
       toast({ title: "Task created" });
     },
   });
@@ -214,7 +218,14 @@ export default function ProjectBoardPage() {
 
   const filteredTasks = tasks?.filter((task) => {
     if (filterType !== "all" && task.type !== filterType) return false;
-    if (filterAssignee !== "all" && task.assigneeId !== filterAssignee) return false;
+    if (filterAssignee === "unassigned" && task.assigneeId !== null) return false;
+    if (filterAssignee !== "all" && filterAssignee !== "unassigned" && task.assigneeId !== filterAssignee) return false;
+    if (filterPriority !== "all" && task.priority !== filterPriority) return false;
+    if (filterLabel !== "all" && !task.labels.includes(filterLabel)) return false;
+    if (filterDue === "overdue" && (!task.dueDate || !isPast(new Date(task.dueDate)) || task.status === "DONE")) return false;
+    if (filterDue === "today" && (!task.dueDate || !isToday(new Date(task.dueDate)))) return false;
+    if (filterDue === "upcoming" && (!task.dueDate || isPast(new Date(task.dueDate)))) return false;
+    if (filterDue === "none" && task.dueDate) return false;
     return true;
   });
 
@@ -240,6 +251,46 @@ export default function ProjectBoardPage() {
         ? prev.labels.filter((id) => id !== labelId)
         : [...prev.labels, labelId],
     }));
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const newAttachments: Attachment[] = [];
+    Array.from(files).forEach((file) => {
+      const url = URL.createObjectURL(file);
+      newAttachments.push({
+        id: crypto.randomUUID(),
+        name: file.name,
+        url,
+        type: file.type,
+        size: file.size,
+        uploadedAt: new Date(),
+      });
+    });
+    
+    setNewTask((prev) => ({
+      ...prev,
+      attachments: [...prev.attachments, ...newAttachments],
+    }));
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    const attachment = newTask.attachments.find((a) => a.id === attachmentId);
+    if (attachment) {
+      URL.revokeObjectURL(attachment.url);
+    }
+    setNewTask((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((a) => a.id !== attachmentId),
+    }));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -285,7 +336,7 @@ export default function ProjectBoardPage() {
           
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-32"><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger className="w-28"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 {(["BUG", "FEATURE", "STORY", "TASK", "EPIC"] as TaskType[]).map((t) => (
@@ -294,13 +345,55 @@ export default function ProjectBoardPage() {
               </SelectContent>
             </Select>
             
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="w-28"><SelectValue placeholder="Priority" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                {PRIORITY_ORDER.map((p) => (
+                  <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             <Select value={filterAssignee} onValueChange={setFilterAssignee}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Assignee" /></SelectTrigger>
+              <SelectTrigger className="w-36"><SelectValue placeholder="Assignee" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assignees</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
                 {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>
+                    <div className="flex items-center gap-2">
+                      <UserAvatar user={m} size="sm" />
+                      {m.name}
+                    </div>
+                  </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={filterLabel} onValueChange={setFilterLabel}>
+              <SelectTrigger className="w-28"><SelectValue placeholder="Label" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Labels</SelectItem>
+                {projectLabels.map((label: Label) => (
+                  <SelectItem key={label.id} value={label.id}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: label.color }} />
+                      {label.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={filterDue} onValueChange={setFilterDue}>
+              <SelectTrigger className="w-28"><SelectValue placeholder="Due" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Dates</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="today">Due Today</SelectItem>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="none">No Due Date</SelectItem>
               </SelectContent>
             </Select>
             
@@ -409,6 +502,57 @@ export default function ProjectBoardPage() {
                           <LabelBadge label={label} />
                         </label>
                       ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <FormLabel>Attachments</FormLabel>
+                    <div className="border rounded-md p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          id="file-upload"
+                          multiple
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => document.getElementById("file-upload")?.click()}
+                        >
+                          <Paperclip className="h-4 w-4 mr-2" />
+                          Attach files
+                        </Button>
+                        <span className="text-xs text-muted-foreground">Images, documents, or any file</span>
+                      </div>
+                      
+                      {newTask.attachments.length > 0 && (
+                        <div className="space-y-2">
+                          {newTask.attachments.map((attachment) => (
+                            <div key={attachment.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {attachment.type.startsWith("image/") ? (
+                                  <Image className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                )}
+                                <span className="text-sm truncate">{attachment.name}</span>
+                                <span className="text-xs text-muted-foreground flex-shrink-0">({formatFileSize(attachment.size)})</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeAttachment(attachment.id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

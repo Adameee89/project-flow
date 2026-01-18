@@ -333,6 +333,7 @@ export const tasksAPI = {
     dueDate?: Date | null;
     storyPoints?: number | null;
     labels?: string[];
+    attachments?: { id: string; name: string; url: string; type: string; size: number; uploadedAt: Date }[];
   }): Promise<Task> {
     await delay();
     const user = db.getUserById(userId);
@@ -357,6 +358,7 @@ export const tasksAPI = {
       storyPoints: data.storyPoints || null,
       labels: data.labels || [],
       parentTaskId: null,
+      attachments: data.attachments || [],
     });
     db.addAuditLog({ userId, action: "CREATE_TASK", entity: "TASK", entityId: task.id, before: null, after: { title: task.title, type: task.type } });
     return task;
