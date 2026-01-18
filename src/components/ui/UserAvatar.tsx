@@ -1,5 +1,6 @@
 import { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface UserAvatarProps {
   user: User | null | undefined;
@@ -36,15 +37,16 @@ export function UserAvatar({ user, size = "md", className }: UserAvatarProps) {
     .slice(0, 2);
 
   return (
-    <div
-      className={cn(
-        "rounded-full flex items-center justify-center font-medium text-primary-foreground",
-        sizeClasses[size],
-        className
+    <Avatar className={cn(sizeClasses[size], className)}>
+      {user.avatarUrl && (
+        <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
       )}
-      style={{ backgroundColor: user.avatarColor }}
-    >
-      {initials}
-    </div>
+      <AvatarFallback
+        style={{ backgroundColor: user.avatarColor }}
+        className="text-primary-foreground font-medium"
+      >
+        {initials}
+      </AvatarFallback>
+    </Avatar>
   );
 }

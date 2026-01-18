@@ -18,6 +18,7 @@ export function seedUsers(): User[] {
     email: "admin1@pm.com",
     role: "ADMIN",
     avatarColor: getAvatarColor(0),
+    avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face",
     isActive: true,
   });
   
@@ -27,24 +28,39 @@ export function seedUsers(): User[] {
     email: "admin2@pm.com",
     role: "ADMIN",
     avatarColor: getAvatarColor(1),
+    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
     isActive: true,
   });
   
   const userNames = [
-    "Alex Rivera", "Jordan Kim", "Casey Morgan", "Taylor Swift", 
-    "Morgan Lee", "Jamie Parker", "Riley Cooper", "Avery Brooks",
-    "Quinn Sanders", "Drew Mitchell", "Blake Turner", "Cameron Ellis",
-    "Sage Williams", "Rowan Davis", "Finley Clark", "Hayden Gray",
-    "Charlie Stone", "Dakota Reed"
+    { name: "Alex Rivera", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face" },
+    { name: "Jordan Kim", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face" },
+    { name: "Casey Morgan", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" },
+    { name: "Taylor Swift", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face" },
+    { name: "Morgan Lee", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=face" },
+    { name: "Jamie Parker", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face" },
+    { name: "Riley Cooper", avatar: "https://images.unsplash.com/photo-1507081323647-4d250478b919?w=100&h=100&fit=crop&crop=face" },
+    { name: "Avery Brooks", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=face" },
+    { name: "Quinn Sanders", avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&h=100&fit=crop&crop=face" },
+    { name: "Drew Mitchell", avatar: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop&crop=face" },
+    { name: "Blake Turner", avatar: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=100&h=100&fit=crop&crop=face" },
+    { name: "Cameron Ellis", avatar: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&h=100&fit=crop&crop=face" },
+    { name: "Sage Williams", avatar: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=100&h=100&fit=crop&crop=face" },
+    { name: "Rowan Davis", avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop&crop=face" },
+    { name: "Finley Clark", avatar: "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=100&h=100&fit=crop&crop=face" },
+    { name: "Hayden Gray", avatar: "https://images.unsplash.com/photo-1488161628813-04466f872be2?w=100&h=100&fit=crop&crop=face" },
+    { name: "Charlie Stone", avatar: "https://images.unsplash.com/photo-1504199367641-eba8151c9e56?w=100&h=100&fit=crop&crop=face" },
+    { name: "Dakota Reed", avatar: "https://images.unsplash.com/photo-1496345875659-11f7dd282d1d?w=100&h=100&fit=crop&crop=face" },
   ];
   
-  userNames.forEach((name, index) => {
+  userNames.forEach((userData, index) => {
     users.push({
       id: `user-${index + 1}`,
-      name,
+      name: userData.name,
       email: `user${index + 1}@pm.com`,
       role: "USER",
       avatarColor: getAvatarColor(index + 2),
+      avatarUrl: userData.avatar,
       isActive: true,
     });
   });
@@ -146,6 +162,7 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
         parentTaskId: null,
         subtaskIds: [],
         order,
+        attachments: [],
       });
     });
   });

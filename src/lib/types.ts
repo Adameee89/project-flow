@@ -12,12 +12,22 @@ export type AuditAction =
   | "ROLE_CHANGE" | "ADD_USER_TO_PROJECT" | "REMOVE_USER_FROM_PROJECT"
   | "CREATE_USER" | "DEACTIVATE_USER" | "REACTIVATE_USER";
 
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  size: number;
+  uploadedAt: Date;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
   avatarColor: string;
+  avatarUrl?: string;
   isActive: boolean;
 }
 
@@ -56,6 +66,7 @@ export interface Task {
   parentTaskId: string | null;
   subtaskIds: string[];
   order: number;
+  attachments: Attachment[];
 }
 
 export interface AuditLogEntry {
