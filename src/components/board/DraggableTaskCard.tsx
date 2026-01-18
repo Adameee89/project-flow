@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
 import { TaskTypeIcon } from "@/components/ui/TaskTypeBadge";
 import { LabelBadge } from "@/components/ui/LabelBadge";
-import { CalendarIcon, GripVertical } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 
@@ -44,27 +44,37 @@ export function DraggableTaskCard({ task, project, onClick }: DraggableTaskCardP
     borderLeftColor: task.type === "BUG" ? "#ef4444" : task.type === "EPIC" ? "#8b5cf6" : "transparent",
   };
 
+  // Handle click only if not dragging
+  const handleClick = (e: React.MouseEvent) => {
+    // Don't open if we were dragging
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onClick();
+  };
+
+  // Handle pointer up to detect real clicks vs drags
+  const handlePointerUp = (e: React.PointerEvent) => {
+    // This is handled by the sortable, but we track for click detection
+  };
+
   return (
     <Card
       ref={setNodeRef}
       style={cardStyle}
-      onClick={onClick}
+      {...attributes}
+      {...listeners}
+      onClick={handleClick}
       className={cn(
-        "p-3 cursor-pointer hover:shadow-card-hover transition-all group border-l-4",
-        isDragging && "opacity-50 shadow-lg ring-2 ring-primary"
+        "p-3 cursor-grab active:cursor-grabbing hover:shadow-card-hover transition-all group border-l-4 touch-none select-none",
+        isDragging && "opacity-50 shadow-lg ring-2 ring-primary cursor-grabbing"
       )}
     >
-      <div className="space-y-2">
+      <div className="space-y-2 pointer-events-none">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div
-              {...attributes}
-              {...listeners}
-              className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
             <TaskTypeIcon type={task.type} />
             <span className="text-xs text-muted-foreground font-mono">{task.id.slice(-8).toUpperCase()}</span>
           </div>
