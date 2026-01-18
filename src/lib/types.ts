@@ -37,6 +37,30 @@ export interface Label {
   color: string;
 }
 
+export type ProjectTag = "DEVELOPMENT" | "MARKETING" | "DESIGN" | "RESEARCH" | "OPERATIONS" | "SUPPORT" | "INTERNAL" | "CLIENT";
+
+export const PROJECT_TAG_LABELS: Record<ProjectTag, string> = {
+  DEVELOPMENT: "Development",
+  MARKETING: "Marketing",
+  DESIGN: "Design",
+  RESEARCH: "Research",
+  OPERATIONS: "Operations",
+  SUPPORT: "Support",
+  INTERNAL: "Internal",
+  CLIENT: "Client",
+};
+
+export const PROJECT_TAG_COLORS: Record<ProjectTag, string> = {
+  DEVELOPMENT: "#3B82F6",
+  MARKETING: "#F59E0B",
+  DESIGN: "#8B5CF6",
+  RESEARCH: "#10B981",
+  OPERATIONS: "#6366F1",
+  SUPPORT: "#EC4899",
+  INTERNAL: "#64748B",
+  CLIENT: "#06B6D4",
+};
+
 export interface Project {
   id: string;
   name: string;
@@ -45,6 +69,7 @@ export interface Project {
   createdAt: Date;
   createdBy: string;
   labels: Label[];
+  tags: ProjectTag[];
 }
 
 export interface Task {
