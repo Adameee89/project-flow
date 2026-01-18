@@ -10,6 +10,7 @@ import ProjectsPage from "./pages/ProjectsPage";
 import ProjectBoardPage from "./pages/ProjectBoardPage";
 import MyTasksPage from "./pages/MyTasksPage";
 import AdminPage from "./pages/AdminPage";
+import ProfileSettingsPage from "./pages/ProfileSettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ function AppRoutes() {
       <Route path="/projects/:projectId" element={<ProtectedRoute><ProjectBoardPage /></ProtectedRoute>} />
       <Route path="/my-tasks" element={<ProtectedRoute><MyTasksPage /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><ProfileSettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
