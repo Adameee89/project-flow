@@ -1,9 +1,8 @@
 import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useIsAdmin } from "@/stores/authStore";
-import { useThemeStore, applyTheme } from "@/stores/themeStore";
+import { useUserPreferencesStore, applyTheme } from "@/stores/userPreferencesStore";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +19,9 @@ import {
   Shield,
   LogOut,
   ChevronDown,
+  Settings,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,15 +44,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isAdmin = useIsAdmin();
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme } = useThemeStore();
+  const { getPreferences, setThemeVariant } = useUserPreferencesStore();
+
+  const prefs = user ? getPreferences(user.id) : null;
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    if (user && prefs) {
+      applyTheme(prefs.theme, prefs.themeVariant);
+    }
+  }, [user, prefs?.theme, prefs?.themeVariant]);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const toggleTheme = () => {
+    if (user && prefs) {
+      setThemeVariant(user.id, prefs.themeVariant === "dark" ? "light" : "dark");
+    }
   };
 
   const filteredNavItems = navItems.filter(
@@ -93,7 +105,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9"
+            >
+              {prefs?.themeVariant === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
             
             {isAdmin && (
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
@@ -118,6 +141,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <p className="text-xs text-muted-foreground">{user?.email}</p>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Profile Settings
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
