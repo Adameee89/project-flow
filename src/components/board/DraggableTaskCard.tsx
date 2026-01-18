@@ -1,3 +1,4 @@
+import React, { memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task, Label } from "@/lib/types";
@@ -17,7 +18,7 @@ interface DraggableTaskCardProps {
   onClick: () => void;
 }
 
-export function DraggableTaskCard({ task, project, onClick }: DraggableTaskCardProps) {
+const DraggableTaskCardInner = ({ task, project, onClick }: DraggableTaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -114,4 +115,18 @@ export function DraggableTaskCard({ task, project, onClick }: DraggableTaskCardP
       </div>
     </Card>
   );
-}
+};
+
+export const DraggableTaskCard = memo(DraggableTaskCardInner, (prev, next) => {
+  return (
+    prev.task.id === next.task.id &&
+    prev.task.title === next.task.title &&
+    prev.task.status === next.task.status &&
+    prev.task.priority === next.task.priority &&
+    prev.task.type === next.task.type &&
+    prev.task.assigneeId === next.task.assigneeId &&
+    prev.task.dueDate === next.task.dueDate &&
+    prev.task.storyPoints === next.task.storyPoints &&
+    JSON.stringify(prev.task.labels) === JSON.stringify(next.task.labels)
+  );
+});

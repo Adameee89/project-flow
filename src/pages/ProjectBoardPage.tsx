@@ -148,6 +148,8 @@ export default function ProjectBoardPage() {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 10,
+        delay: 100,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
