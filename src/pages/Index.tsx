@@ -200,7 +200,7 @@ const Index = () => {
               
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text">
                 Manage projects with
-                <span className="text-primary"> Jira-level power</span>
+                <span className="text-primary"> power</span>
                 <br />without the complexity.
               </h1>
               
