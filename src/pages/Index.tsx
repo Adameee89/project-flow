@@ -23,6 +23,8 @@ import {
   ClipboardList,
   Sun,
   Moon,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +107,7 @@ const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
 const Index = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       return document.documentElement.classList.contains("dark");
@@ -123,6 +126,7 @@ const Index = () => {
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
     }
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -153,7 +157,8 @@ const Index = () => {
                 <button onClick={() => scrollToSection("demo")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Demo</button>
                 <button onClick={() => scrollToSection("technical")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Technical</button>
               </div>
-              <div className="flex items-center gap-3">
+              {/* Desktop buttons */}
+              <div className="hidden md:flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -174,7 +179,91 @@ const Index = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Mobile buttons - only theme toggle and menu */}
+              <div className="flex md:hidden items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="h-9 w-9"
+                >
+                  {isDark ? (
+                    <Sun className="h-4 w-4" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="h-9 w-9"
+                >
+                  {mobileMenuOpen ? (
+                    <X className="h-5 w-5" />
+                  ) : (
+                    <Menu className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
             </div>
+
+            {/* Mobile Menu */}
+            <AnimatePresence>
+              {mobileMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="md:hidden border-t border-border/40 overflow-hidden"
+                >
+                  <div className="py-4 space-y-3">
+                    <button 
+                      onClick={() => scrollToSection("features")} 
+                      className="block w-full text-left px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Features
+                    </button>
+                    <button 
+                      onClick={() => scrollToSection("screenshots")} 
+                      className="block w-full text-left px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Screenshots
+                    </button>
+                    <button 
+                      onClick={() => scrollToSection("demo")} 
+                      className="block w-full text-left px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Demo
+                    </button>
+                    <button 
+                      onClick={() => scrollToSection("technical")} 
+                      className="block w-full text-left px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Technical
+                    </button>
+                    <div className="pt-3 border-t border-border/40 space-y-2">
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start" 
+                        onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}
+                      >
+                        Sign In
+                      </Button>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => { navigate("/login"); setMobileMenuOpen(false); }}
+                      >
+                        Open Demo
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.nav>
 
