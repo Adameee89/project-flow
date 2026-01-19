@@ -153,7 +153,7 @@ const Index = () => {
               </div>
               <div className="hidden md:flex items-center gap-8">
                 <button onClick={() => scrollToSection("features")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</button>
-                <button onClick={() => scrollToSection("screenshots")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Screenshots</button>
+                <button onClick={() => scrollToSection("screenshots")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">The App</button>
                 <button onClick={() => scrollToSection("demo")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Demo</button>
                 <button onClick={() => scrollToSection("technical")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">Technical</button>
               </div>
@@ -230,7 +230,7 @@ const Index = () => {
                       onClick={() => scrollToSection("screenshots")} 
                       className="block w-full text-left px-2 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      Screenshots
+                      The App
                     </button>
                     <button 
                       onClick={() => scrollToSection("demo")} 
