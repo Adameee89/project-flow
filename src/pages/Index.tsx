@@ -26,11 +26,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Import screenshots
-import dashboardImg from "@/assets/screenshots/dashboard.png";
-import boardImg from "@/assets/screenshots/board.png";
-import adminImg from "@/assets/screenshots/admin.png";
-import projectsImg from "@/assets/screenshots/projects.png";
+// Import dark theme screenshots
+import dashboardDark from "@/assets/screenshots/dashboard.png";
+import boardDark from "@/assets/screenshots/board.png";
+import adminDark from "@/assets/screenshots/admin.png";
+import projectsDark from "@/assets/screenshots/projects.png";
+
+// Import light theme screenshots
+import dashboardLight from "@/assets/screenshots/dashboard-light.png";
+import boardLight from "@/assets/screenshots/board-light.png";
+import adminLight from "@/assets/screenshots/admin-light.png";
+import projectsLight from "@/assets/screenshots/projects-light.png";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -238,7 +244,7 @@ const Index = () => {
                     </div>
                   </div>
                   <img
-                    src={dashboardImg}
+                    src={isDark ? dashboardDark : dashboardLight}
                     alt="ProjectFlow Dashboard"
                     className="w-full h-auto"
                   />
@@ -345,10 +351,10 @@ const Index = () => {
 
             <div className="grid md:grid-cols-2 gap-8">
               {[
-                { img: boardImg, title: "Kanban Board", desc: "Drag-and-drop task management with status columns" },
-                { img: projectsImg, title: "Projects Overview", desc: "All your projects at a glance with team members" },
-                { img: adminImg, title: "Admin Panel", desc: "Role management and system-level controls" },
-                { img: dashboardImg, title: "Dashboard", desc: "Activity feed and task overview" },
+                { imgDark: boardDark, imgLight: boardLight, title: "Kanban Board", desc: "Drag-and-drop task management with status columns" },
+                { imgDark: projectsDark, imgLight: projectsLight, title: "Projects Overview", desc: "All your projects at a glance with team members" },
+                { imgDark: adminDark, imgLight: adminLight, title: "Admin Panel", desc: "Role management and system-level controls" },
+                { imgDark: dashboardDark, imgLight: dashboardLight, title: "Dashboard", desc: "Activity feed and task overview" },
               ].map((item, i) => (
                 <motion.div
                   key={item.title}
@@ -367,7 +373,7 @@ const Index = () => {
                       </div>
                     </div>
                     <img
-                      src={item.img}
+                      src={isDark ? item.imgDark : item.imgLight}
                       alt={item.title}
                       className="w-full h-auto group-hover:scale-[1.02] transition-transform duration-300"
                     />
