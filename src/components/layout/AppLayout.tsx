@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore, useIsAdmin } from "@/stores/authStore";
 import { useUserPreferencesStore, applyTheme } from "@/stores/userPreferencesStore";
@@ -24,6 +24,7 @@ import {
   Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GlobalSearch, SearchTrigger } from "@/components/search/GlobalSearch";
 
 interface NavItem {
   label: string;
@@ -45,6 +46,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { getPreferences, setThemeVariant } = useUserPreferencesStore();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const prefs = user ? getPreferences(user.id) : null;
 
@@ -53,6 +55,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       applyTheme(prefs.theme, prefs.themeVariant);
     }
   }, [user, prefs?.theme, prefs?.themeVariant]);
+
+  // Global keyboard shortcut for search (Cmd/Ctrl + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -105,6 +120,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <SearchTrigger onClick={() => setSearchOpen(true)} />
+            
             <Button
               variant="ghost"
               size="icon"
@@ -160,6 +177,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1">
         {children}
       </main>
+
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
