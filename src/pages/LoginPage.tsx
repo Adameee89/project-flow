@@ -16,7 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +25,7 @@ export default function LoginPage() {
     
     const result = await login(email, password);
     if (result.success) {
-      navigate("/");
+      navigate("/dashboard");
     } else {
       setError(result.error || "Login failed");
     }
@@ -36,7 +36,7 @@ export default function LoginPage() {
     setPassword("demo");
     const result = await login(userEmail, "demo");
     if (result.success) {
-      navigate("/");
+      navigate("/dashboard");
     }
   };
 
