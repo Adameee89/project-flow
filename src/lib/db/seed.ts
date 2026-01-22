@@ -167,6 +167,8 @@ export function seedTasks(projects: Project[], users: User[]): Task[] {
         subtaskIds: [],
         order,
         attachments: [],
+        comments: [],
+        linkedTaskIds: [],
       });
     });
   });

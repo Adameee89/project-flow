@@ -374,6 +374,8 @@ export const tasksAPI = {
       labels: data.labels || [],
       parentTaskId: null,
       attachments: data.attachments || [],
+      comments: [],
+      linkedTaskIds: [],
     });
     db.addAuditLog({ userId, action: "CREATE_TASK", entity: "TASK", entityId: task.id, before: null, after: { title: task.title, type: task.type } });
     return task;

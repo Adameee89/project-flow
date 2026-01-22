@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
-import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, User, Project } from "@/lib/types";
+import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, User, Project, TaskLink, TaskLinkType } from "@/lib/types";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { TaskTypeBadge } from "@/components/ui/TaskTypeBadge";
 import { LabelBadge } from "@/components/ui/LabelBadge";
+import { TaskComments } from "@/components/board/TaskComments";
+import { TaskLinks } from "@/components/board/TaskLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
@@ -15,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, CalendarIcon, Paperclip, X, FileText, Image, Pencil, Check, Download } from "lucide-react";
+import { Trash2, CalendarIcon, Paperclip, X, FileText, Image, Pencil, Check, Download, MessageCircle, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -24,9 +26,17 @@ interface TaskEditFormProps {
   project: Project | undefined;
   members: User[];
   projectLabels: Label[];
+  allTasks: Task[];
+  taskLinks: TaskLink[];
+  currentUserId: string;
   onUpdate: (updates: Partial<Task>) => void;
   onStatusChange: (status: TaskStatus) => void;
   onDelete: () => void;
+  onAddComment: (content: string) => void;
+  onUpdateComment: (commentId: string, content: string) => void;
+  onDeleteComment: (commentId: string) => void;
+  onAddLink: (targetTaskId: string, linkType: TaskLinkType) => void;
+  onRemoveLink: (linkId: string) => void;
   formatFileSize: (bytes: number) => string;
 }
 
@@ -35,9 +45,17 @@ export function TaskEditForm({
   project,
   members,
   projectLabels,
+  allTasks,
+  taskLinks,
+  currentUserId,
   onUpdate,
   onStatusChange,
   onDelete,
+  onAddComment,
+  onUpdateComment,
+  onDeleteComment,
+  onAddLink,
+  onRemoveLink,
   formatFileSize,
 }: TaskEditFormProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -151,8 +169,16 @@ export function TaskEditForm({
       </DialogHeader>
       
       <Tabs defaultValue="details" className="mt-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="comments" className="flex items-center gap-1">
+            <MessageCircle className="h-3 w-3" />
+            Comments {(task.comments?.length || 0) > 0 && `(${task.comments?.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="links" className="flex items-center gap-1">
+            <Link2 className="h-3 w-3" />
+            Links {(taskLinks?.length || 0) > 0 && `(${taskLinks?.length})`}
+          </TabsTrigger>
           <TabsTrigger value="attachments">
             Attachments {(task.attachments?.length || 0) > 0 && `(${task.attachments?.length})`}
           </TabsTrigger>
@@ -401,6 +427,29 @@ export function TaskEditForm({
               ))}
             </div>
           )}
+        </TabsContent>
+        
+        {/* Comments Tab */}
+        <TabsContent value="comments" className="mt-4">
+          <TaskComments
+            comments={task.comments || []}
+            currentUserId={currentUserId}
+            users={members}
+            onAddComment={onAddComment}
+            onUpdateComment={onUpdateComment}
+            onDeleteComment={onDeleteComment}
+          />
+        </TabsContent>
+
+        {/* Links Tab */}
+        <TabsContent value="links" className="mt-4">
+          <TaskLinks
+            currentTask={task}
+            allTasks={allTasks}
+            taskLinks={taskLinks}
+            onAddLink={onAddLink}
+            onRemoveLink={onRemoveLink}
+          />
         </TabsContent>
         
         <TabsContent value="activity" className="mt-4">

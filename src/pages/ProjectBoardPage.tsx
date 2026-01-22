@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay, closestCorners, PointerSensor, KeyboardSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -7,7 +7,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { useAuthStore } from "@/stores/authStore";
 import { projectsAPI, tasksAPI } from "@/lib/api";
 import { db } from "@/lib/db/database";
-import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, PRIORITY_ORDER } from "@/lib/types";
+import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, PRIORITY_ORDER, TaskLinkType, TaskLink } from "@/lib/types";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -121,6 +121,95 @@ function StatusColumn({ status, tasks, project, onTaskClick }: { status: TaskSta
         ))}
       </div>
     </div>
+  );
+}
+
+// Wrapper component to handle comments and links state
+interface TaskEditFormWithDataProps {
+  selectedTask: Task;
+  project: any;
+  members: any[];
+  projectLabels: Label[];
+  tasks: Task[];
+  user: { id: string };
+  onUpdate: (updates: Partial<Task>) => void;
+  onStatusChange: (status: TaskStatus) => void;
+  onDelete: () => void;
+  formatFileSize: (bytes: number) => string;
+  queryClient: any;
+  projectId: string;
+}
+
+function TaskEditFormWithData({
+  selectedTask,
+  project,
+  members,
+  projectLabels,
+  tasks,
+  user,
+  onUpdate,
+  onStatusChange,
+  onDelete,
+  formatFileSize,
+  queryClient,
+  projectId,
+}: TaskEditFormWithDataProps) {
+  // Get task links for this task
+  const taskLinks = useMemo(() => {
+    return db.getTaskLinks(selectedTask.id);
+  }, [selectedTask.id, selectedTask.linkedTaskIds]);
+
+  // Comment handlers
+  const handleAddComment = (content: string) => {
+    const comment = db.addComment(selectedTask.id, user.id, content);
+    if (comment) {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+    }
+  };
+
+  const handleUpdateComment = (commentId: string, content: string) => {
+    db.updateComment(selectedTask.id, commentId, content);
+    queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    db.deleteComment(selectedTask.id, commentId);
+    queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+  };
+
+  // Task link handlers
+  const handleAddLink = (targetTaskId: string, linkType: TaskLinkType) => {
+    db.addTaskLink(selectedTask.id, targetTaskId, linkType, user.id);
+    queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+  };
+
+  const handleRemoveLink = (linkId: string) => {
+    db.removeTaskLink(linkId);
+    queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+  };
+
+  // Get updated task from cache or use selected
+  const currentTask = tasks.find(t => t.id === selectedTask.id) || selectedTask;
+
+  return (
+    <TaskEditForm
+      task={currentTask}
+      project={project}
+      members={members}
+      projectLabels={projectLabels}
+      allTasks={tasks}
+      taskLinks={taskLinks}
+      currentUserId={user.id}
+      onUpdate={onUpdate}
+      onStatusChange={onStatusChange}
+      onDelete={onDelete}
+      onAddComment={handleAddComment}
+      onUpdateComment={handleUpdateComment}
+      onDeleteComment={handleDeleteComment}
+      onAddLink={handleAddLink}
+      onRemoveLink={handleRemoveLink}
+      formatFileSize={formatFileSize}
+    />
   );
 }
 
@@ -606,15 +695,19 @@ export default function ProjectBoardPage() {
         <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             {selectedTask && (
-              <TaskEditForm
-                task={selectedTask}
+              <TaskEditFormWithData
+                selectedTask={selectedTask}
                 project={project}
                 members={members}
                 projectLabels={projectLabels}
+                tasks={tasks || []}
+                user={user!}
                 onUpdate={(updates) => updateMutation.mutate({ taskId: selectedTask.id, updates })}
                 onStatusChange={(status) => statusMutation.mutate({ taskId: selectedTask.id, status })}
                 onDelete={() => deleteMutation.mutate(selectedTask.id)}
                 formatFileSize={formatFileSize}
+                queryClient={queryClient}
+                projectId={projectId!}
               />
             )}
           </DialogContent>
