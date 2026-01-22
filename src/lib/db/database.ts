@@ -343,7 +343,7 @@ class InMemoryDatabase {
 
   // ==================== COMMENT METHODS ====================
 
-  addComment(taskId: string, userId: string, content: string): Comment | undefined {
+  addComment(taskId: string, userId: string, content: string, mentions: string[] = []): Comment | undefined {
     const task = this.getTaskById(taskId);
     if (!task) return undefined;
 
@@ -352,6 +352,7 @@ class InMemoryDatabase {
       taskId,
       userId,
       content,
+      mentions,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -363,7 +364,7 @@ class InMemoryDatabase {
     return comment;
   }
 
-  updateComment(taskId: string, commentId: string, content: string): Comment | undefined {
+  updateComment(taskId: string, commentId: string, content: string, mentions: string[] = []): Comment | undefined {
     const task = this.getTaskById(taskId);
     if (!task) return undefined;
 
@@ -371,6 +372,7 @@ class InMemoryDatabase {
     if (!comment) return undefined;
 
     comment.content = content;
+    comment.mentions = mentions;
     comment.updatedAt = new Date();
     task.updatedAt = new Date();
     this.saveToStorage();

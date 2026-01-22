@@ -12,6 +12,40 @@ export type AuditAction =
   | "ROLE_CHANGE" | "ADD_USER_TO_PROJECT" | "REMOVE_USER_FROM_PROJECT"
   | "CREATE_USER" | "DEACTIVATE_USER" | "REACTIVATE_USER";
 
+export type NotificationType = "MENTION" | "COMMENT_ON_ASSIGNED_TASK" | "TASK_ASSIGNED" | "STATUS_CHANGED";
+
+export interface Notification {
+  id: string;
+  userId: string; // User who receives this notification
+  type: NotificationType;
+  taskId: string;
+  taskTitle: string;
+  projectId: string;
+  actorId: string; // User who triggered the notification
+  actorName: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+}
+
+export type TaskActivityType = 
+  | "CREATED" | "STATUS_CHANGED" | "ASSIGNEE_CHANGED" | "PRIORITY_CHANGED" 
+  | "COMMENT_ADDED" | "COMMENT_UPDATED" | "COMMENT_DELETED"
+  | "DESCRIPTION_CHANGED" | "TITLE_CHANGED" | "DUE_DATE_CHANGED"
+  | "LINK_ADDED" | "LINK_REMOVED" | "LABELS_CHANGED";
+
+export interface TaskActivity {
+  id: string;
+  taskId: string;
+  userId: string;
+  type: TaskActivityType;
+  field?: string;
+  oldValue?: string;
+  newValue?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
 export interface Attachment {
   id: string;
   name: string;
@@ -26,6 +60,7 @@ export interface Comment {
   taskId: string;
   userId: string;
   content: string;
+  mentions: string[]; // Array of mentioned user IDs
   createdAt: Date;
   updatedAt: Date;
 }

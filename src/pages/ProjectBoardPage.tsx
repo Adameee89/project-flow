@@ -7,6 +7,8 @@ import { arrayMove } from "@dnd-kit/sortable";
 import { useAuthStore } from "@/stores/authStore";
 import { projectsAPI, tasksAPI } from "@/lib/api";
 import { db } from "@/lib/db/database";
+import { activityService } from "@/lib/db/activityService";
+import { createMentionNotification, createCommentNotification, createAssignmentNotification } from "@/stores/notificationStore";
 import { Task, TaskStatus, TaskPriority, TaskType, STATUS_ORDER, STATUS_LABELS, PRIORITY_LABELS, TASK_TYPE_LABELS, STORY_POINTS, Label, Attachment, PRIORITY_ORDER, TaskLinkType, TaskLink } from "@/lib/types";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
@@ -159,31 +161,74 @@ function TaskEditFormWithData({
     return db.getTaskLinks(selectedTask.id);
   }, [selectedTask.id, selectedTask.linkedTaskIds]);
 
-  // Comment handlers
-  const handleAddComment = (content: string) => {
-    const comment = db.addComment(selectedTask.id, user.id, content);
+  // Comment handlers with mentions and notifications
+  const handleAddComment = (content: string, mentions: string[]) => {
+    const comment = db.addComment(selectedTask.id, user.id, content, mentions);
     if (comment) {
+      const currentUser = db.getUserById(user.id);
+      const task = db.getTaskById(selectedTask.id);
+      
+      // Track activity
+      activityService.trackCommentAdded(selectedTask.id, user.id, comment.id);
+      
+      // Send notifications for mentions
+      mentions.forEach(mentionedUserId => {
+        createMentionNotification(
+          mentionedUserId,
+          selectedTask.id,
+          selectedTask.title,
+          selectedTask.projectId,
+          user.id,
+          currentUser?.name || "Someone"
+        );
+      });
+      
+      // Notify assignee if they're not the commenter and not mentioned
+      if (task?.assigneeId && task.assigneeId !== user.id && !mentions.includes(task.assigneeId)) {
+        createCommentNotification(
+          task.assigneeId,
+          selectedTask.id,
+          selectedTask.title,
+          selectedTask.projectId,
+          user.id,
+          currentUser?.name || "Someone"
+        );
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
     }
   };
 
-  const handleUpdateComment = (commentId: string, content: string) => {
-    db.updateComment(selectedTask.id, commentId, content);
+  const handleUpdateComment = (commentId: string, content: string, mentions: string[]) => {
+    db.updateComment(selectedTask.id, commentId, content, mentions);
+    activityService.trackCommentUpdated(selectedTask.id, user.id, commentId);
     queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
   };
 
   const handleDeleteComment = (commentId: string) => {
     db.deleteComment(selectedTask.id, commentId);
+    activityService.trackCommentDeleted(selectedTask.id, user.id);
     queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
   };
 
   // Task link handlers
   const handleAddLink = (targetTaskId: string, linkType: TaskLinkType) => {
-    db.addTaskLink(selectedTask.id, targetTaskId, linkType, user.id);
+    const link = db.addTaskLink(selectedTask.id, targetTaskId, linkType, user.id);
+    if (link) {
+      const targetTask = db.getTaskById(targetTaskId);
+      activityService.trackLinkAdded(selectedTask.id, user.id, targetTask?.title || "Unknown", linkType);
+    }
     queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
   };
 
   const handleRemoveLink = (linkId: string) => {
+    const links = db.getTaskLinks(selectedTask.id);
+    const link = links.find(l => l.id === linkId);
+    if (link) {
+      const targetId = link.sourceTaskId === selectedTask.id ? link.targetTaskId : link.sourceTaskId;
+      const targetTask = db.getTaskById(targetId);
+      activityService.trackLinkRemoved(selectedTask.id, user.id, targetTask?.title || "Unknown");
+    }
     db.removeTaskLink(linkId);
     queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
   };
