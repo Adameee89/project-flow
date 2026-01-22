@@ -21,6 +21,34 @@ export interface Attachment {
   uploadedAt: Date;
 }
 
+export interface Comment {
+  id: string;
+  taskId: string;
+  userId: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type TaskLinkType = "BLOCKS" | "BLOCKED_BY" | "RELATES_TO" | "DUPLICATES" | "DUPLICATED_BY";
+
+export const TASK_LINK_LABELS: Record<TaskLinkType, string> = {
+  BLOCKS: "blocks",
+  BLOCKED_BY: "is blocked by",
+  RELATES_TO: "relates to",
+  DUPLICATES: "duplicates",
+  DUPLICATED_BY: "is duplicated by",
+};
+
+export interface TaskLink {
+  id: string;
+  sourceTaskId: string;
+  targetTaskId: string;
+  linkType: TaskLinkType;
+  createdAt: Date;
+  createdBy: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -92,6 +120,8 @@ export interface Task {
   subtaskIds: string[];
   order: number;
   attachments: Attachment[];
+  comments: Comment[];
+  linkedTaskIds: string[];
 }
 
 export interface AuditLogEntry {

@@ -1,4 +1,4 @@
-import { User, Project, Task, AuditLogEntry, Label, AuditAction } from "../types";
+import { User, Project, Task, AuditLogEntry, Label, AuditAction, Comment, TaskLink } from "../types";
 import { seedUsers, seedProjects, seedTasks, seedAuditLogs } from "./seed";
 
 const STORAGE_KEY = "agile-hive-db";
@@ -8,6 +8,7 @@ interface StoredData {
   projects: Project[];
   tasks: Task[];
   auditLogs: AuditLogEntry[];
+  taskLinks: TaskLink[];
 }
 
 class InMemoryDatabase {
@@ -15,6 +16,7 @@ class InMemoryDatabase {
   projects: Project[] = [];
   tasks: Task[] = [];
   auditLogs: AuditLogEntry[] = [];
+  taskLinks: TaskLink[] = [];
 
   constructor() {
     this.loadFromStorage();
@@ -36,10 +38,20 @@ class InMemoryDatabase {
           createdAt: new Date(t.createdAt),
           updatedAt: new Date(t.updatedAt),
           dueDate: t.dueDate ? new Date(t.dueDate) : null,
+          comments: (t.comments || []).map((c: any) => ({
+            ...c,
+            createdAt: new Date(c.createdAt),
+            updatedAt: new Date(c.updatedAt),
+          })),
+          linkedTaskIds: t.linkedTaskIds || [],
         }));
         this.auditLogs = (data.auditLogs || []).map(log => ({
           ...log,
           timestamp: new Date(log.timestamp),
+        }));
+        this.taskLinks = (data.taskLinks || []).map(link => ({
+          ...link,
+          createdAt: new Date(link.createdAt),
         }));
         return;
       }
@@ -57,6 +69,7 @@ class InMemoryDatabase {
         projects: this.projects,
         tasks: this.tasks,
         auditLogs: this.auditLogs,
+        taskLinks: this.taskLinks,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -69,6 +82,7 @@ class InMemoryDatabase {
     this.projects = seedProjects(this.users);
     this.tasks = seedTasks(this.projects, this.users);
     this.auditLogs = seedAuditLogs();
+    this.taskLinks = [];
     this.saveToStorage();
   }
 
@@ -325,6 +339,121 @@ class InMemoryDatabase {
     this.auditLogs.push(newEntry);
     this.saveToStorage();
     return newEntry;
+  }
+
+  // ==================== COMMENT METHODS ====================
+
+  addComment(taskId: string, userId: string, content: string): Comment | undefined {
+    const task = this.getTaskById(taskId);
+    if (!task) return undefined;
+
+    const comment: Comment = {
+      id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      taskId,
+      userId,
+      content,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    task.comments = task.comments || [];
+    task.comments.push(comment);
+    task.updatedAt = new Date();
+    this.saveToStorage();
+    return comment;
+  }
+
+  updateComment(taskId: string, commentId: string, content: string): Comment | undefined {
+    const task = this.getTaskById(taskId);
+    if (!task) return undefined;
+
+    const comment = task.comments?.find(c => c.id === commentId);
+    if (!comment) return undefined;
+
+    comment.content = content;
+    comment.updatedAt = new Date();
+    task.updatedAt = new Date();
+    this.saveToStorage();
+    return comment;
+  }
+
+  deleteComment(taskId: string, commentId: string): boolean {
+    const task = this.getTaskById(taskId);
+    if (!task) return false;
+
+    const index = task.comments?.findIndex(c => c.id === commentId) ?? -1;
+    if (index === -1) return false;
+
+    task.comments.splice(index, 1);
+    task.updatedAt = new Date();
+    this.saveToStorage();
+    return true;
+  }
+
+  // ==================== TASK LINK METHODS ====================
+
+  getTaskLinks(taskId: string): TaskLink[] {
+    return this.taskLinks.filter(
+      link => link.sourceTaskId === taskId || link.targetTaskId === taskId
+    );
+  }
+
+  addTaskLink(sourceTaskId: string, targetTaskId: string, linkType: TaskLink['linkType'], createdBy: string): TaskLink | undefined {
+    // Check if tasks exist
+    const sourceTask = this.getTaskById(sourceTaskId);
+    const targetTask = this.getTaskById(targetTaskId);
+    if (!sourceTask || !targetTask) return undefined;
+
+    // Check if link already exists
+    const existingLink = this.taskLinks.find(
+      link => 
+        (link.sourceTaskId === sourceTaskId && link.targetTaskId === targetTaskId) ||
+        (link.sourceTaskId === targetTaskId && link.targetTaskId === sourceTaskId)
+    );
+    if (existingLink) return existingLink;
+
+    const link: TaskLink = {
+      id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      sourceTaskId,
+      targetTaskId,
+      linkType,
+      createdAt: new Date(),
+      createdBy,
+    };
+
+    this.taskLinks.push(link);
+
+    // Update linkedTaskIds on both tasks
+    if (!sourceTask.linkedTaskIds.includes(targetTaskId)) {
+      sourceTask.linkedTaskIds.push(targetTaskId);
+    }
+    if (!targetTask.linkedTaskIds.includes(sourceTaskId)) {
+      targetTask.linkedTaskIds.push(sourceTaskId);
+    }
+
+    this.saveToStorage();
+    return link;
+  }
+
+  removeTaskLink(linkId: string): boolean {
+    const linkIndex = this.taskLinks.findIndex(l => l.id === linkId);
+    if (linkIndex === -1) return false;
+
+    const link = this.taskLinks[linkIndex];
+    const sourceTask = this.getTaskById(link.sourceTaskId);
+    const targetTask = this.getTaskById(link.targetTaskId);
+
+    // Remove from linkedTaskIds
+    if (sourceTask) {
+      sourceTask.linkedTaskIds = sourceTask.linkedTaskIds.filter(id => id !== link.targetTaskId);
+    }
+    if (targetTask) {
+      targetTask.linkedTaskIds = targetTask.linkedTaskIds.filter(id => id !== link.sourceTaskId);
+    }
+
+    this.taskLinks.splice(linkIndex, 1);
+    this.saveToStorage();
+    return true;
   }
 }
 
