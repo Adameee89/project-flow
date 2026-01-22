@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch, SearchTrigger } from "@/components/search/GlobalSearch";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem {
   label: string;
@@ -121,6 +122,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
           <div className="ml-auto flex items-center gap-2">
             <SearchTrigger onClick={() => setSearchOpen(true)} />
+            
+            <NotificationBell />
             
             <Button
               variant="ghost"

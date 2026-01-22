@@ -6,6 +6,7 @@ import { TaskTypeBadge } from "@/components/ui/TaskTypeBadge";
 import { LabelBadge } from "@/components/ui/LabelBadge";
 import { TaskComments } from "@/components/board/TaskComments";
 import { TaskLinks } from "@/components/board/TaskLinks";
+import { TaskActivityHistory } from "@/components/board/TaskActivityHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
@@ -32,8 +33,8 @@ interface TaskEditFormProps {
   onUpdate: (updates: Partial<Task>) => void;
   onStatusChange: (status: TaskStatus) => void;
   onDelete: () => void;
-  onAddComment: (content: string) => void;
-  onUpdateComment: (commentId: string, content: string) => void;
+  onAddComment: (content: string, mentions: string[]) => void;
+  onUpdateComment: (commentId: string, content: string, mentions: string[]) => void;
   onDeleteComment: (commentId: string) => void;
   onAddLink: (targetTaskId: string, linkType: TaskLinkType) => void;
   onRemoveLink: (linkId: string) => void;
@@ -453,7 +454,7 @@ export function TaskEditForm({
         </TabsContent>
         
         <TabsContent value="activity" className="mt-4">
-          <p className="text-muted-foreground text-center py-8">Activity history coming soon...</p>
+          <TaskActivityHistory taskId={task.id} users={members} />
         </TabsContent>
       </Tabs>
     </>

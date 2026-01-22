@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Comment, User } from "@/lib/types";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,202 @@ interface TaskCommentsProps {
   comments: Comment[];
   currentUserId: string;
   users: User[];
-  onAddComment: (content: string) => void;
-  onUpdateComment: (commentId: string, content: string) => void;
+  onAddComment: (content: string, mentions: string[]) => void;
+  onUpdateComment: (commentId: string, content: string, mentions: string[]) => void;
   onDeleteComment: (commentId: string) => void;
+}
+
+// Parse @mentions from text and return mentioned user IDs
+function extractMentions(content: string, users: User[]): string[] {
+  const mentionRegex = /@(\w+(?:\s\w+)?)/g;
+  const mentions: string[] = [];
+  let match;
+  
+  while ((match = mentionRegex.exec(content)) !== null) {
+    const mentionName = match[1].toLowerCase();
+    const user = users.find(u => 
+      u.name.toLowerCase() === mentionName ||
+      u.name.toLowerCase().startsWith(mentionName)
+    );
+    if (user && !mentions.includes(user.id)) {
+      mentions.push(user.id);
+    }
+  }
+  
+  return mentions;
+}
+
+// Render comment content with highlighted @mentions
+function renderContentWithMentions(content: string, users: User[], onUserClick?: (userId: string) => void) {
+  const parts: React.ReactNode[] = [];
+  const mentionRegex = /@(\w+(?:\s\w+)?)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    // Add text before the mention
+    if (match.index > lastIndex) {
+      parts.push(content.substring(lastIndex, match.index));
+    }
+
+    const mentionName = match[1].toLowerCase();
+    const user = users.find(u => 
+      u.name.toLowerCase() === mentionName ||
+      u.name.toLowerCase().startsWith(mentionName)
+    );
+
+    if (user) {
+      parts.push(
+        <button
+          key={match.index}
+          className="text-primary hover:underline font-medium bg-primary/10 px-1 rounded cursor-pointer"
+          onClick={() => onUserClick?.(user.id)}
+        >
+          @{user.name}
+        </button>
+      );
+    } else {
+      parts.push(match[0]);
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+
+  return parts;
+}
+
+interface MentionSuggestionsProps {
+  users: User[];
+  filter: string;
+  onSelect: (user: User) => void;
+  visible: boolean;
+  position: { top: number; left: number };
+}
+
+function MentionSuggestions({ users, filter, onSelect, visible, position }: MentionSuggestionsProps) {
+  const filteredUsers = useMemo(() => 
+    users.filter(u => 
+      u.name.toLowerCase().includes(filter.toLowerCase()) ||
+      u.email.toLowerCase().includes(filter.toLowerCase())
+    ).slice(0, 5),
+    [users, filter]
+  );
+
+  if (!visible || filteredUsers.length === 0) return null;
+
+  return (
+    <div 
+      className="absolute z-50 w-56 bg-popover border rounded-md shadow-lg p-1"
+      style={{ top: position.top, left: position.left }}
+    >
+      {filteredUsers.map(user => (
+        <button
+          key={user.id}
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-sm text-left"
+          onClick={() => onSelect(user)}
+        >
+          <UserAvatar user={user} size="xs" />
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate">{user.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface CommentInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  users: User[];
+  placeholder?: string;
+  autoFocus?: boolean;
+}
+
+function CommentInput({ value, onChange, onSubmit, users, placeholder = "Add a comment...", autoFocus }: CommentInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [cursorPosition, setCursorPosition] = useState(0);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    const cursor = e.target.selectionStart;
+    onChange(newValue);
+    setCursorPosition(cursor);
+
+    // Check if we're in the middle of typing a mention
+    const textBeforeCursor = newValue.substring(0, cursor);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      setMentionFilter(mentionMatch[1]);
+      setShowMentions(true);
+      // Position the suggestions below the textarea
+      setMentionPosition({ top: 80, left: 0 });
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  const handleMentionSelect = (user: User) => {
+    const textBeforeCursor = value.substring(0, cursorPosition);
+    const textAfterCursor = value.substring(cursorPosition);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+    
+    if (mentionMatch) {
+      const newText = 
+        textBeforeCursor.substring(0, mentionMatch.index) + 
+        `@${user.name} ` + 
+        textAfterCursor;
+      onChange(newText);
+    }
+    
+    setShowMentions(false);
+    textareaRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      onSubmit();
+    }
+    if (e.key === "Escape") {
+      setShowMentions(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Textarea
+        ref={textareaRef}
+        placeholder={placeholder}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className="min-h-[80px] resize-none"
+        autoFocus={autoFocus}
+      />
+      <MentionSuggestions
+        users={users}
+        filter={mentionFilter}
+        onSelect={handleMentionSelect}
+        visible={showMentions}
+        position={mentionPosition}
+      />
+      <p className="text-xs text-muted-foreground mt-1">
+        Type @ to mention someone. Press ⌘/Ctrl + Enter to submit.
+      </p>
+    </div>
+  );
 }
 
 export function TaskComments({
@@ -30,7 +223,8 @@ export function TaskComments({
 
   const handleSubmit = () => {
     if (newComment.trim()) {
-      onAddComment(newComment.trim());
+      const mentions = extractMentions(newComment.trim(), users);
+      onAddComment(newComment.trim(), mentions);
       setNewComment("");
     }
   };
@@ -42,7 +236,8 @@ export function TaskComments({
 
   const handleSaveEdit = (commentId: string) => {
     if (editContent.trim()) {
-      onUpdateComment(commentId, editContent.trim());
+      const mentions = extractMentions(editContent.trim(), users);
+      onUpdateComment(commentId, editContent.trim(), mentions);
     }
     setEditingId(null);
     setEditContent("");
@@ -50,27 +245,24 @@ export function TaskComments({
 
   const getUserById = (userId: string) => users.find(u => u.id === userId);
 
+  const handleUserClick = (userId: string) => {
+    // Could navigate to user profile or show user info
+    console.log("User clicked:", userId);
+  };
+
   return (
     <div className="space-y-4">
       {/* Add comment form */}
       <div className="flex gap-3">
         <UserAvatar user={getUserById(currentUserId)} size="sm" />
         <div className="flex-1 space-y-2">
-          <Textarea
-            placeholder="Add a comment..."
+          <CommentInput
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-[80px] resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                handleSubmit();
-              }
-            }}
+            onChange={setNewComment}
+            onSubmit={handleSubmit}
+            users={users}
           />
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">
-              Press ⌘/Ctrl + Enter to submit
-            </span>
+          <div className="flex justify-end">
             <Button 
               size="sm" 
               onClick={handleSubmit}
@@ -113,10 +305,11 @@ export function TaskComments({
                   
                   {isEditing ? (
                     <div className="space-y-2">
-                      <Textarea
+                      <CommentInput
                         value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="min-h-[60px] resize-none"
+                        onChange={setEditContent}
+                        onSubmit={() => handleSaveEdit(comment.id)}
+                        users={users}
                         autoFocus
                       />
                       <div className="flex gap-2">
@@ -132,7 +325,9 @@ export function TaskComments({
                     </div>
                   ) : (
                     <div className="relative">
-                      <p className="text-sm whitespace-pre-wrap break-words">{comment.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {renderContentWithMentions(comment.content, users, handleUserClick)}
+                      </p>
                       {isOwner && (
                         <div className="absolute -right-2 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 

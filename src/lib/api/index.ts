@@ -1,6 +1,8 @@
 import { db } from "../db/database";
-import { User, Project, Task, AuditLogEntry, TaskStatus, TaskPriority, TaskType, Role, AuditAction } from "../types";
+import { User, Project, Task, AuditLogEntry, TaskStatus, TaskPriority, TaskType, Role, AuditAction, STATUS_LABELS, PRIORITY_LABELS } from "../types";
 import { getPermissions, canUserChangeStatus, isUserProjectMember, getProjectMembers } from "./permissions";
+import { activityService } from "../db/activityService";
+import { createAssignmentNotification } from "@/stores/notificationStore";
 
 const delay = (ms: number = 200) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -377,6 +379,21 @@ export const tasksAPI = {
       comments: [],
       linkedTaskIds: [],
     });
+    // Track activity for task creation
+    activityService.trackTaskCreated(task.id, userId);
+    
+    // Send assignment notification if assigned to someone else
+    if (task.assigneeId && task.assigneeId !== userId) {
+      createAssignmentNotification(
+        task.assigneeId,
+        task.id,
+        task.title,
+        task.projectId,
+        userId,
+        user.name
+      );
+    }
+    
     db.addAuditLog({ userId, action: "CREATE_TASK", entity: "TASK", entityId: task.id, before: null, after: { title: task.title, type: task.type } });
     return task;
   },
@@ -396,8 +413,43 @@ export const tasksAPI = {
       }
     }
     const before = { ...task };
+    const allUsers = db.getUsers();
     const updatedTask = db.updateTask(taskId, updates);
     if (!updatedTask) throw new APIError("Failed to update task", 500);
+    
+    // Track activity for various field changes
+    if (updates.title !== undefined && updates.title !== before.title) {
+      activityService.trackChange(taskId, userId, "title", before.title, updates.title);
+    }
+    if (updates.description !== undefined && updates.description !== before.description) {
+      activityService.trackChange(taskId, userId, "description", before.description, updates.description);
+    }
+    if (updates.priority !== undefined && updates.priority !== before.priority) {
+      activityService.trackChange(taskId, userId, "priority", PRIORITY_LABELS[before.priority], PRIORITY_LABELS[updates.priority]);
+    }
+    if (updates.dueDate !== undefined) {
+      const oldDate = before.dueDate ? new Date(before.dueDate).toLocaleDateString() : null;
+      const newDate = updates.dueDate ? new Date(updates.dueDate).toLocaleDateString() : null;
+      if (oldDate !== newDate) {
+        activityService.trackChange(taskId, userId, "dueDate", oldDate, newDate);
+      }
+    }
+    if (updates.assigneeId !== undefined && updates.assigneeId !== before.assigneeId) {
+      activityService.trackChange(taskId, userId, "assigneeId", before.assigneeId, updates.assigneeId, allUsers);
+      
+      // Send notification to new assignee
+      if (updates.assigneeId && updates.assigneeId !== userId) {
+        createAssignmentNotification(
+          updates.assigneeId,
+          taskId,
+          task.title,
+          task.projectId,
+          userId,
+          user.name
+        );
+      }
+    }
+    
     db.addAuditLog({ userId, action: "UPDATE_TASK", entity: "TASK", entityId: taskId, before: { title: before.title }, after: { title: updatedTask.title } });
     return updatedTask;
   },
@@ -417,6 +469,10 @@ export const tasksAPI = {
     const before = task.status;
     const updatedTask = db.updateTask(taskId, { status: newStatus });
     if (!updatedTask) throw new APIError("Failed to update task", 500);
+    
+    // Track activity for status change
+    activityService.trackChange(taskId, userId, "status", STATUS_LABELS[before], STATUS_LABELS[newStatus]);
+    
     db.addAuditLog({ userId, action: "CHANGE_STATUS", entity: "TASK", entityId: taskId, before: { status: before }, after: { status: newStatus } });
     return updatedTask;
   },
