@@ -53,6 +53,8 @@ export default {
         status: {
           todo: "hsl(var(--status-todo))",
           "todo-bg": "hsl(var(--status-todo-bg))",
+          waiting: "hsl(var(--status-waiting))",
+          "waiting-bg": "hsl(var(--status-waiting-bg))",
           progress: "hsl(var(--status-progress))",
           "progress-bg": "hsl(var(--status-progress-bg))",
           review: "hsl(var(--status-review))",
@@ -65,6 +67,14 @@ export default {
           medium: "hsl(var(--priority-medium))",
           high: "hsl(var(--priority-high))",
           critical: "hsl(var(--priority-critical))",
+        },
+        type: {
+          bug: "hsl(var(--type-bug))",
+          epic: "hsl(var(--type-epic))",
+          feature: "hsl(var(--type-feature))",
+          story: "hsl(var(--type-story))",
+          task: "hsl(var(--type-task))",
+          subtask: "hsl(var(--type-subtask))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

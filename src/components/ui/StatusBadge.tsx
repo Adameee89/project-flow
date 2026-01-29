@@ -8,6 +8,7 @@ interface StatusBadgeProps {
 
 const statusStyles: Record<TaskStatus, string> = {
   TODO: "bg-status-todo-bg text-status-todo",
+  WAITING: "bg-status-waiting-bg text-status-waiting",
   IN_PROGRESS: "bg-status-progress-bg text-status-progress",
   REVIEW: "bg-status-review-bg text-status-review",
   DONE: "bg-status-done-bg text-status-done",

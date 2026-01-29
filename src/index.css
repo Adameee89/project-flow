@@ -38,12 +38,22 @@
     /* Status colors */
     --status-todo: 220 9% 46%;
     --status-todo-bg: 220 14% 96%;
+    --status-waiting: 280 67% 55%;
+    --status-waiting-bg: 280 67% 95%;
     --status-progress: 221 83% 53%;
     --status-progress-bg: 221 83% 95%;
     --status-review: 38 92% 50%;
     --status-review-bg: 38 92% 95%;
     --status-done: 142 71% 45%;
     --status-done-bg: 142 71% 95%;
+
+    /* Task type border colors */
+    --type-bug: 0 84% 60%;
+    --type-epic: 263 70% 50%;
+    --type-feature: 142 71% 45%;
+    --type-story: 199 89% 48%;
+    --type-task: 220 9% 46%;
+    --type-subtask: 38 92% 50%;
 
     /* Priority colors */
     --priority-low: 142 71% 45%;
@@ -97,6 +107,7 @@
     --ring: 221 83% 53%;
 
     --status-todo-bg: 220 14% 15%;
+    --status-waiting-bg: 280 67% 15%;
     --status-progress-bg: 221 83% 15%;
     --status-review-bg: 38 92% 15%;
     --status-done-bg: 142 71% 15%;
@@ -122,6 +133,10 @@
 @layer components {
   .status-badge-todo {
     @apply bg-[hsl(var(--status-todo-bg))] text-[hsl(var(--status-todo))];
+  }
+
+  .status-badge-waiting {
+    @apply bg-[hsl(var(--status-waiting-bg))] text-[hsl(var(--status-waiting))];
   }
   
   .status-badge-progress {

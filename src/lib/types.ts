@@ -1,6 +1,6 @@
 export type Role = "ADMIN" | "USER";
 
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
+export type TaskStatus = "TODO" | "WAITING" | "IN_PROGRESS" | "REVIEW" | "DONE";
 
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -178,12 +178,13 @@ export interface AuthState {
   logout: () => void;
 }
 
-export const STATUS_ORDER: TaskStatus[] = ["TODO", "IN_PROGRESS", "REVIEW", "DONE"];
+export const STATUS_ORDER: TaskStatus[] = ["TODO", "WAITING", "IN_PROGRESS", "REVIEW", "DONE"];
 
 export const PRIORITY_ORDER: TaskPriority[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   TODO: "To Do",
+  WAITING: "Waiting",
   IN_PROGRESS: "In Progress",
   REVIEW: "Review",
   DONE: "Done",

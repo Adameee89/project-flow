@@ -50,7 +50,7 @@ function TaskCard({ task, project, onClick }: { task: Task; project: any; onClic
     <Card
       onClick={onClick}
       className="p-3 cursor-pointer hover:shadow-card-hover transition-all group border-l-4"
-      style={{ borderLeftColor: task.type === "BUG" ? "#ef4444" : task.type === "EPIC" ? "#8b5cf6" : "transparent" }}
+      style={{ borderLeftColor: task.type === "BUG" ? "hsl(var(--type-bug))" : task.type === "EPIC" ? "hsl(var(--type-epic))" : task.type === "FEATURE" ? "hsl(var(--type-feature))" : task.type === "STORY" ? "hsl(var(--type-story))" : task.type === "SUBTASK" ? "hsl(var(--type-subtask))" : "hsl(var(--type-task))" }}
     >
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
@@ -97,8 +97,9 @@ function TaskCard({ task, project, onClick }: { task: Task; project: any; onClic
 }
 
 function StatusColumn({ status, tasks, project, onTaskClick }: { status: TaskStatus; tasks: Task[]; project: any; onTaskClick: (task: Task) => void }) {
-  const statusColors: Record<TaskStatus, string> = {
+const statusColors: Record<TaskStatus, string> = {
     TODO: "border-t-status-todo bg-status-todo-bg/50",
+    WAITING: "border-t-status-waiting bg-status-waiting-bg/50",
     IN_PROGRESS: "border-t-status-progress bg-status-progress-bg/50",
     REVIEW: "border-t-status-review bg-status-review-bg/50",
     DONE: "border-t-status-done bg-status-done-bg/50",
@@ -106,8 +107,8 @@ function StatusColumn({ status, tasks, project, onTaskClick }: { status: TaskSta
 
   const storyPointsTotal = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
 
-  return (
-    <div className={cn("rounded-lg p-3 min-w-[300px] border-t-4 flex flex-col", statusColors[status])}>
+    return (
+    <div className={cn("rounded-lg p-3 min-w-[280px] flex-1 border-t-4 flex flex-col", statusColors[status])}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-sm">{STATUS_LABELS[status]}</h3>
@@ -709,7 +710,7 @@ export default function ProjectBoardPage() {
           onDragEnd={handleDragEnd}
           onDragOver={handleDragOver}
         >
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin w-full">
             {STATUS_ORDER.map((status) => (
               <DroppableColumn
                 key={status}
@@ -723,7 +724,7 @@ export default function ProjectBoardPage() {
           
           <DragOverlay>
             {activeTask && (
-              <Card className="p-3 shadow-lg border-l-4 opacity-90 rotate-3" style={{ borderLeftColor: activeTask.type === "BUG" ? "#ef4444" : activeTask.type === "EPIC" ? "#8b5cf6" : "transparent" }}>
+              <Card className="p-3 shadow-lg border-l-4 opacity-90 rotate-3" style={{ borderLeftColor: activeTask.type === "BUG" ? "hsl(var(--type-bug))" : activeTask.type === "EPIC" ? "hsl(var(--type-epic))" : activeTask.type === "FEATURE" ? "hsl(var(--type-feature))" : activeTask.type === "STORY" ? "hsl(var(--type-story))" : activeTask.type === "SUBTASK" ? "hsl(var(--type-subtask))" : "hsl(var(--type-task))" }}>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <TaskTypeIcon type={activeTask.type} />
