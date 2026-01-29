@@ -40,9 +40,18 @@ const DraggableTaskCardInner = ({ task, project, onClick }: DraggableTaskCardPro
   const isOverdue = task.dueDate && isPast(new Date(task.dueDate)) && task.status !== "DONE";
   const isDueToday = task.dueDate && isToday(new Date(task.dueDate));
 
+  const taskTypeColors: Record<string, string> = {
+    BUG: "hsl(var(--type-bug))",
+    EPIC: "hsl(var(--type-epic))",
+    FEATURE: "hsl(var(--type-feature))",
+    STORY: "hsl(var(--type-story))",
+    TASK: "hsl(var(--type-task))",
+    SUBTASK: "hsl(var(--type-subtask))",
+  };
+
   const cardStyle = {
     ...style,
-    borderLeftColor: task.type === "BUG" ? "#ef4444" : task.type === "EPIC" ? "#8b5cf6" : "transparent",
+    borderLeftColor: taskTypeColors[task.type] || "transparent",
   };
 
   // Handle click only if not dragging

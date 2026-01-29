@@ -13,6 +13,7 @@ interface DroppableColumnProps {
 
 const statusColors: Record<TaskStatus, string> = {
   TODO: "border-t-status-todo bg-status-todo-bg/50",
+  WAITING: "border-t-status-waiting bg-status-waiting-bg/50",
   IN_PROGRESS: "border-t-status-progress bg-status-progress-bg/50",
   REVIEW: "border-t-status-review bg-status-review-bg/50",
   DONE: "border-t-status-done bg-status-done-bg/50",
@@ -28,7 +29,7 @@ export function DroppableColumn({ status, tasks, project, onTaskClick }: Droppab
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-lg p-3 min-w-[300px] border-t-4 flex flex-col transition-colors",
+        "rounded-lg p-3 min-w-[280px] flex-1 border-t-4 flex flex-col transition-colors",
         statusColors[status],
         isOver && "ring-2 ring-primary ring-offset-2"
       )}
