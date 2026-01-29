@@ -24,13 +24,13 @@ export function TaskTypeBadge({ type, showLabel = true, className }: TaskTypeBad
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium",
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap shrink-0",
         config.color,
         config.bgColor,
         className
       )}
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-3.5 w-3.5 shrink-0" />
       {showLabel && TASK_TYPE_LABELS[type]}
     </span>
   );
