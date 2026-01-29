@@ -125,7 +125,7 @@ export function TaskEditForm({
       <DialogHeader className="space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={task.type} onValueChange={(v) => onUpdate({ type: v as TaskType })}>
-            <SelectTrigger className="w-auto h-auto p-0 border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
+            <SelectTrigger className="w-auto h-auto p-0 border-0 bg-transparent focus:ring-0 focus:ring-offset-0 [&>span]:flex [&>span]:items-center [&>span]:line-clamp-none">
               <TaskTypeBadge type={task.type} />
             </SelectTrigger>
             <SelectContent>
