@@ -122,10 +122,10 @@ export function TaskEditForm({
 
   return (
     <>
-      <DialogHeader>
-        <div className="flex items-center gap-2 mb-2">
+      <DialogHeader className="space-y-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={task.type} onValueChange={(v) => onUpdate({ type: v as TaskType })}>
-            <SelectTrigger className="w-auto h-auto p-0 border-0 bg-transparent">
+            <SelectTrigger className="w-auto h-auto p-0 border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
               <TaskTypeBadge type={task.type} />
             </SelectTrigger>
             <SelectContent>
@@ -134,14 +134,14 @@ export function TaskEditForm({
               ))}
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground font-mono">{task.id.slice(-8).toUpperCase()}</span>
+          <span className="text-xs text-muted-foreground font-mono shrink-0">{task.id.slice(-8).toUpperCase()}</span>
         </div>
         {isEditingTitle ? (
           <div className="flex items-center gap-2">
             <Input
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="text-xl font-semibold"
+              className="text-xl font-semibold flex-1"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveTitle();
@@ -157,14 +157,14 @@ export function TaskEditForm({
           </div>
         ) : (
           <DialogTitle 
-            className="text-xl cursor-pointer hover:bg-accent rounded px-1 -mx-1 group flex items-center gap-2"
+            className="text-xl cursor-pointer hover:bg-accent rounded px-1 -mx-1 group inline-flex items-center gap-2 break-words"
             onClick={() => {
               setEditTitle(task.title);
               setIsEditingTitle(true);
             }}
           >
-            {task.title}
-            <Pencil className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+            <span className="break-words">{task.title}</span>
+            <Pencil className="h-4 w-4 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
           </DialogTitle>
         )}
       </DialogHeader>
