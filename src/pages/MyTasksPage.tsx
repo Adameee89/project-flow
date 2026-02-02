@@ -45,7 +45,7 @@ export default function MyTasksPage() {
         ) : myTasks.length === 0 ? (
           <Card><CardContent className="flex flex-col items-center py-12"><ClipboardList className="h-12 w-12 text-muted-foreground mb-4" /><p className="text-muted-foreground">No tasks assigned to you</p></CardContent></Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {myTasks.map((task) => {
               const project = projects?.find((p) => p.id === task.projectId);
               return (
