@@ -187,11 +187,11 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
       variant="outline"
       size="sm"
       onClick={onClick}
-      className="relative h-9 w-9 md:w-64 justify-start text-sm text-muted-foreground md:pr-12"
+      className="relative h-9 w-full max-w-[180px] sm:max-w-none sm:w-64 justify-start text-sm text-muted-foreground sm:pr-12"
     >
-      <Search className="h-4 w-4 md:mr-2" />
-      <span className="hidden md:inline-flex">Search tasks...</span>
-      <kbd className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+      <Search className="h-4 w-4 mr-2 shrink-0" />
+      <span className="truncate">Search tasks...</span>
+      <kbd className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
         <span className="text-xs">⌘</span>K
       </kbd>
     </Button>
